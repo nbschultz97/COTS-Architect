@@ -28,6 +28,13 @@
       box-sizing: border-box;
     }
 
+    .gate-stack {
+      max-width: 560px;
+      margin: 0 auto;
+      display: grid;
+      gap: 16px;
+    }
+
     .gate-shell {
       max-width: 560px;
       margin: 0 auto;
@@ -100,14 +107,38 @@
 </head>
 <body>
   <div id="access-gate">
-    <div class="gate-shell" role="dialog" aria-labelledby="gateTitle" aria-describedby="gateDescription">
-      <h1 id="gateTitle">Ceradon Systems — Ceradon Architect Stack Demo</h1>
-      <p id="gateDescription">Enter your demo access code to view the Architect Stack hub and launch tools.</p>
-      <div class="gate-form">
-        <label for="demo-code">Access code</label>
-        <input id="demo-code" type="password" autocomplete="off" inputmode="numeric" aria-describedby="demo-error">
-        <button id="demo-enter" type="button">Enter</button>
-        <div id="demo-error" class="error-message" role="alert">Invalid code.</div>
+    <div class="gate-stack">
+      <div class="gate-shell" role="dialog" aria-labelledby="gateTitle" aria-describedby="gateDescription">
+        <h1 id="gateTitle">Ceradon Systems — Ceradon Architect Stack Demo</h1>
+        <p id="gateDescription">Enter your demo access code to view the Architect Stack hub and launch tools.</p>
+        <div class="gate-form">
+          <label for="demo-code">Access code</label>
+          <input id="demo-code" type="password" autocomplete="off" inputmode="numeric" aria-describedby="demo-error">
+          <button id="demo-enter" type="button">Enter</button>
+          <div id="demo-error" class="error-message" role="alert">Invalid code.</div>
+        </div>
+      </div>
+
+      <div class="gate-shell" aria-labelledby="requestTitle" aria-describedby="requestDescription">
+        <h2 id="requestTitle">Request a demo code</h2>
+        <p id="requestDescription">
+          Ceradon Systems provides controlled access to <strong>Ceradon Mission Architect</strong> for qualified organizations.
+          Request a demo code to explore the live planner and see how it fits your mission profiles.
+        </p>
+        <div class="demo-request-actions">
+          <a
+            id="demo-request-button"
+            class="btn primary demo-request-btn"
+            href="mailto:contact@ceradonsystems.com?subject=Demo%20code%20request%20%E2%80%93%20Ceradon%20Mission%20Architect&body=Hi%20Ceradon%20team,%0D%0A%0D%0AI%27d%20like%20to%20request%20a%20demo%20access%20code%20for%20Ceradon%20Mission%20Architect.%0D%0A%0D%0AOrganization:%20%0D%0AUse%20case:%20%0D%0ATimeline:%20%0D%0A%0D%0AThank%20you.">
+            Request a demo code
+          </a>
+
+          <p class="demo-request-email">
+            Or email us at
+            <a href="mailto:contact@ceradonsystems.com?subject=Demo%20code%20request%20%E2%80%93%20Ceradon%20Mission%20Architect">contact@ceradonsystems.com</a>
+            with your organization and use case.
+          </p>
+        </div>
       </div>
     </div>
   </div>
