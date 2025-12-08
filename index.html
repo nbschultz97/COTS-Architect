@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ceradon Architect Stack</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="top-nav">
+    <div class="brand">
+      <div class="logo-dot" aria-hidden="true"></div>
+      <span class="wordmark">Ceradon Architect</span>
+    </div>
+    <nav aria-label="Primary">
+      <ul class="nav-links">
+        <li><a href="/#/home" data-route="home">Home</a></li>
+        <li><a href="/#/workflow" data-route="workflow">Workflow</a></li>
+        <li><a href="/#/tools" data-route="tools">Tools</a></li>
+        <li><a href="/#/mission" data-route="mission">Mission Architect</a></li>
+        <li><a href="/#/demos" data-route="demos">Demos</a></li>
+        <li><a href="/#/docs" data-route="docs">Docs</a></li>
+      </ul>
+    </nav>
+    <button class="toggle" id="themeToggle" aria-label="Toggle light or dark theme">🌙</button>
+  </header>
+
+  <main id="app" class="view-container">
+    <section id="home" class="view" aria-label="Home view">
+      <div class="hero">
+        <div>
+          <p class="eyebrow">Ceradon Systems | Architect Stack</p>
+          <h1>Ceradon Architect Stack – Planning, Design, and Mission Tools for Small UxS and RF Nodes</h1>
+          <p class="lead">Architect is the lab-level planning layer that bridges COTS UxS, RF relays, and sustainment kits with mission realities. Build missions, select platforms, shape meshes, and package kits without leaving the stack.</p>
+          <div class="hero-actions">
+            <a class="btn primary" href="/#/workflow">Explore Workflow</a>
+            <a class="btn ghost" href="/#/tools">Launch Tools</a>
+          </div>
+        </div>
+        <div class="hero-panel">
+          <h3>Stack At-a-Glance</h3>
+          <ul class="stack-list">
+            <li><strong>Mission Architect</strong><span>Mission-first composition and constraints.</span></li>
+            <li><strong>Node Architect</strong><span>Field nodes, payloads, and power envelopes.</span></li>
+            <li><strong>UxS Architect</strong><span>Platform pairing and loadouts.</span></li>
+            <li><strong>Mesh Architect</strong><span>RF coverage, relays, and gateways.</span></li>
+            <li><strong>KitSmith</strong><span>Kits, sustainment, and team packaging.</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card-grid" aria-label="Tool quick launch">
+        <article class="card">
+          <div>
+            <h3>Node Architect</h3>
+            <p>Define sensing nodes, payload stacks, and deployment envelopes from inventory or greenfield concepts.</p>
+          </div>
+          <a class="btn subtle" href="https://nbschultz97.github.io/Ceradon-Node-Architect/web/index.html" target="_blank" rel="noopener">Launch</a>
+        </article>
+        <article class="card">
+          <div>
+            <h3>UxS Architect</h3>
+            <p>Pair nodes to unmanned air/ground/surface platforms with power, payload, and range checks.</p>
+          </div>
+          <a class="btn subtle" href="https://nbschultz97.github.io/Ceradon-UxS-Architect/web/" target="_blank" rel="noopener">Launch</a>
+        </article>
+        <article class="card">
+          <div>
+            <h3>Mesh Architect</h3>
+            <p>Plan RF meshes, relays, and gateways to backhaul small teams and unmanned assets.</p>
+          </div>
+          <a class="btn subtle" href="https://nbschultz97.github.io/Ceradon-Mesh-Architect/" target="_blank" rel="noopener">Launch</a>
+        </article>
+        <article class="card">
+          <div>
+            <h3>KitSmith</h3>
+            <p>Assemble sustainment kits, spares, and team loadouts tied to mission phases.</p>
+          </div>
+          <a class="btn subtle" href="https://nbschultz97.github.io/Ceradon-KitSmith/" target="_blank" rel="noopener">Launch</a>
+        </article>
+        <article class="card">
+          <div>
+            <h3>Mission Architect</h3>
+            <p>Compose missions, phases, and constraints that drive the rest of the stack.</p>
+          </div>
+          <a class="btn subtle" href="https://nbschultz97.github.io/Mission-Architect/" target="_blank" rel="noopener">Launch</a>
+        </article>
+      </div>
+    </section>
+
+    <section id="workflow" class="view" aria-label="Workflow view" hidden>
+      <div class="section-header">
+        <div>
+          <p class="eyebrow">Integrated planning loop</p>
+          <h2>Pick any entry point. Stay inside the loop.</h2>
+          <p class="lead">Mission-first, inventory-first, constraint-first, or RF-environment-first. Architect Stack keeps tools connected so phases, kits, meshes, and platforms stay in sync.</p>
+        </div>
+        <div class="loop-diagram" aria-hidden="true">
+          <div class="loop-node">Mission<br>Architect</div>
+          <div class="loop-node">Node<br>Architect</div>
+          <div class="loop-node">UxS<br>Architect</div>
+          <div class="loop-node">Mesh<br>Architect</div>
+          <div class="loop-node">KitSmith</div>
+          <svg class="loop-lines" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice">
+            <circle cx="200" cy="200" r="140" />
+          </svg>
+        </div>
+      </div>
+      <div class="workflow-grid" id="workflowModes" aria-live="polite"></div>
+    </section>
+
+    <section id="tools" class="view" aria-label="Tools view" hidden>
+      <div class="section-header">
+        <p class="eyebrow">Tool hub</p>
+        <h2>All Architect modules, one launchpad</h2>
+        <p class="lead">Open live demos, check roles, and jump to the right planner without retracing steps.</p>
+      </div>
+      <div class="tool-grid" id="toolGrid" aria-live="polite"></div>
+    </section>
+
+    <section id="mission" class="view" aria-label="Mission Architect view" hidden>
+      <div class="section-header">
+        <p class="eyebrow">Mission-first entry</p>
+        <h2>Mission Architect – drive the stack from the mission down</h2>
+        <p class="lead">Compose phases, AO constraints, timelines, and outputs that downstream tools consume. This hub links directly to the existing Mission Architect app.</p>
+        <div class="mission-actions">
+          <a class="btn primary" href="https://nbschultz97.github.io/Mission-Architect/" target="_blank" rel="noopener">Open Mission Architect</a>
+          <a class="btn ghost" href="/#/workflow">See integrated workflow</a>
+        </div>
+      </div>
+      <div class="mission-layout">
+        <div class="card">
+          <h3>How Mission Architect fits</h3>
+          <ul class="bullet-list">
+            <li><strong>Outputs → Node Architect:</strong> Convert mission phases into node packages per leg.</li>
+            <li><strong>Outputs → UxS Architect:</strong> Match nodes to UxS platforms with loadouts tied to phases.</li>
+            <li><strong>Outputs → Mesh Architect:</strong> Use AO, altitudes, and RF constraints to shape relays and backhaul.</li>
+            <li><strong>Outputs → KitSmith:</strong> Turn teams, timelines, and resupply plans into kits and sustainment loads.</li>
+          </ul>
+          <div class="sample-flow">
+            <h4>Sample mission flow</h4>
+            <p>Start with recon-in-force across two phases. Build the mission in Mission Architect, export the spec, then:</p>
+            <ol>
+              <li>Push node requirements to Node Architect for sensor stack and power checks.</li>
+              <li>Send approved nodes to UxS Architect for platform pairing and sortie planning.</li>
+              <li>Feed AO geometry into Mesh Architect for RF coverage and relay placement.</li>
+              <li>Package sustainment in KitSmith aligned to each phase and team role.</li>
+            </ol>
+            <div class="quick-links">
+              <a class="btn subtle" href="https://nbschultz97.github.io/Ceradon-Node-Architect/web/index.html" target="_blank" rel="noopener">Open Node Architect</a>
+              <a class="btn subtle" href="https://nbschultz97.github.io/Ceradon-UxS-Architect/web/" target="_blank" rel="noopener">Open UxS Architect</a>
+              <a class="btn subtle" href="https://nbschultz97.github.io/Ceradon-Mesh-Architect/" target="_blank" rel="noopener">Open Mesh Architect</a>
+              <a class="btn subtle" href="https://nbschultz97.github.io/Ceradon-KitSmith/" target="_blank" rel="noopener">Open KitSmith</a>
+            </div>
+          </div>
+        </div>
+        <div class="embed-card">
+          <h3>Live preview</h3>
+          <p class="small">Embedded view loads the existing Mission Architect app. If it does not load, use the primary button above.</p>
+          <div class="embed-container">
+            <iframe title="Mission Architect" src="https://nbschultz97.github.io/Mission-Architect/" loading="lazy"></iframe>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="demos" class="view" aria-label="Demos view" hidden>
+      <div class="section-header">
+        <p class="eyebrow">Integrated demo stories</p>
+        <h2>See the stack in action</h2>
+        <p class="lead">Pre-baked walkthroughs show how missions, nodes, meshes, and kits move together.</p>
+      </div>
+      <div class="demo-grid" id="demoGrid" aria-live="polite"></div>
+    </section>
+
+    <section id="docs" class="view" aria-label="Docs view" hidden>
+      <div class="section-header">
+        <p class="eyebrow">Docs & About</p>
+        <h2>What is Ceradon Architect Stack?</h2>
+        <p class="lead">Architect is the planning layer between COTS UxS/robotics and the logistics/C2 stack. It keeps mission intent, RF realities, and sustainment in lockstep.</p>
+      </div>
+      <div class="docs-layout">
+        <div class="card">
+          <h3>Modules</h3>
+          <ul class="bullet-list">
+            <li><strong>Mission Architect:</strong> Mission composition, constraints, AO geometry.</li>
+            <li><strong>Node Architect:</strong> Sensor nodes, payload stacking, power budgets.</li>
+            <li><strong>UxS Architect:</strong> Platform selection, loadouts, and sortie timing.</li>
+            <li><strong>Mesh Architect:</strong> RF backhaul, relays, gateways, spectrum assumptions.</li>
+            <li><strong>KitSmith:</strong> Sustainment kits, spares, and team packaging.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>How it fits Ceradon</h3>
+          <p>Architect Stack pairs with Ceradon products such as Vantage, Phantom-Scout, ATAK plugins, Telemetry Forge, and Tactical-App to close the loop between sensing, control, and sustainment.</p>
+          <p>For more, visit <a href="https://ceradonsystems.com" target="_blank" rel="noopener">CeradonSystems.com</a>.</p>
+          <p class="small">This site is static and GitHub Pages–ready. Edit theme tokens in <code>assets/css/styles.css</code>, update routes in <code>assets/js/app.js</code>, and add tools or demos via the data structures near the top of <code>app.js</code>.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-links">
+      <a href="https://ceradonsystems.com" target="_blank" rel="noopener">CeradonSystems.com</a>
+      <a href="https://nbschultz97.github.io/Ceradon-Node-Architect/web/index.html" target="_blank" rel="noopener">Node Architect</a>
+      <a href="https://nbschultz97.github.io/Ceradon-UxS-Architect/web/" target="_blank" rel="noopener">UxS Architect</a>
+      <a href="https://nbschultz97.github.io/Ceradon-Mesh-Architect/" target="_blank" rel="noopener">Mesh Architect</a>
+      <a href="https://nbschultz97.github.io/Ceradon-KitSmith/" target="_blank" rel="noopener">KitSmith</a>
+      <a href="https://nbschultz97.github.io/Mission-Architect/" target="_blank" rel="noopener">Mission Architect</a>
+    </div>
+    <p class="small">Ceradon Systems LLC – Covert sensing, RF, and UxS planning tools.</p>
+  </footer>
+
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
