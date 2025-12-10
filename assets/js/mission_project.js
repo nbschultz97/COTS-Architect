@@ -1,7 +1,13 @@
 // MissionProject schema and persistence helpers
 // Keeps mission state consistent across Ceradon Architect tools.
+// Downstream tool responsibilities:
+// - Node Architect: populates nodes[], RF/power envelopes, environment + constraint hints.
+// - UxS Architect: populates platforms[], platform metrics, sortie timing, and lift/payload checks.
+// - Mesh Architect: populates mesh_links[], rf_bands, and EW context for coverage planning.
+// - KitSmith: populates kits[], sustainment, power_plan, packing_lists, and load summaries.
+// - Mission Architect: owns mission, phases, assignments, mission_cards, and final exports.
 
-const MISSION_PROJECT_SCHEMA_VERSION = 2;
+const MISSION_PROJECT_SCHEMA_VERSION = '2.0.0';
 
 const MissionProjectStore = (() => {
   const STORAGE_KEY = 'ceradon_mission_project';
@@ -16,7 +22,8 @@ const MissionProjectStore = (() => {
       origin_tool: 'hub',
       scenario: '',
       inventoryReference: 'Pending catalog reference',
-      accessCode: 'ARC-STACK-761'
+      accessCode: 'ARC-STACK-761',
+      team: { size: 0, roles: [] }
     },
     environment: [
       {
@@ -31,6 +38,7 @@ const MissionProjectStore = (() => {
         notes: ''
       }
     ],
+    constraints: [],
     nodes: [],
     platforms: [],
     mesh_links: [],
@@ -38,23 +46,31 @@ const MissionProjectStore = (() => {
     mission: {
       tasks: [],
       phases: [],
-      assignments: []
+      assignments: [],
+      mission_cards: []
     },
-    constraints: [],
     sustainment: {
       sustainmentHours: 48,
       batteryCounts: 0,
       feasibility: {},
-      notes: ''
+      notes: '',
+      power_plan: '',
+      packing_lists: []
     },
     meshPlan: {
       relayCount: 0,
-      criticalLinks: 0
+      criticalLinks: 0,
+      rf_bands: [],
+      ew_profile: ''
     },
     kitsSummary: {
       perOperatorLoads: [],
       perOperatorLoadKg: 18,
       perOperatorLimitKg: 22
+    },
+    exports: {
+      links: [],
+      notes: ''
     }
   });
 
@@ -83,7 +99,7 @@ const MissionProjectStore = (() => {
     const merged = {
       ...defaults,
       ...project,
-      schemaVersion: project?.schemaVersion ?? defaults.schemaVersion,
+      schemaVersion: String(project?.schemaVersion ?? defaults.schemaVersion),
       meta: {
         ...defaults.meta,
         ...(project?.meta || {}),
@@ -214,7 +230,81 @@ const MissionProjectStore = (() => {
     if (!project || typeof project !== 'object') return false;
     if (!project.meta || !project.meta.name) return false;
     if (!project.mission) return false;
+    if (!project.environment || !Array.isArray(project.environment)) return false;
     return true;
+  };
+
+  let schemaCache = null;
+
+  const fetchMissionProjectSchema = async () => {
+    if (schemaCache) return schemaCache;
+    const response = await fetch('schema/mission_project_schema_v2.json');
+    if (!response.ok) {
+      throw new Error('Unable to load MissionProject schema');
+    }
+    schemaCache = await response.json();
+    return schemaCache;
+  };
+
+  const validateAgainstSchema = (value, schema, path = 'root') => {
+    const errors = [];
+    if (!schema) return errors;
+
+    if (schema.type === 'object') {
+      if (typeof value !== 'object' || Array.isArray(value) || value === null) {
+        errors.push(`${path} should be an object`);
+        return errors;
+      }
+
+      const required = schema.required || [];
+      required.forEach((key) => {
+        if (value[key] === undefined) {
+          errors.push(`${path}.${key} is required`);
+        }
+      });
+
+      const properties = schema.properties || {};
+      Object.entries(properties).forEach(([key, propertySchema]) => {
+        if (value[key] === undefined) return;
+        errors.push(...validateAgainstSchema(value[key], propertySchema, `${path}.${key}`));
+      });
+      return errors;
+    }
+
+    if (schema.type === 'array') {
+      if (!Array.isArray(value)) {
+        errors.push(`${path} should be an array`);
+        return errors;
+      }
+      const itemSchema = schema.items;
+      if (itemSchema) {
+        value.forEach((item, index) => {
+          errors.push(...validateAgainstSchema(item, itemSchema, `${path}[${index}]`));
+        });
+      }
+      return errors;
+    }
+
+    if (schema.type === 'string' && typeof value !== 'string') {
+      errors.push(`${path} should be a string`);
+    }
+    if (schema.type === 'number' && typeof value !== 'number') {
+      errors.push(`${path} should be a number`);
+    }
+    if (schema.type === 'boolean' && typeof value !== 'boolean') {
+      errors.push(`${path} should be a boolean`);
+    }
+    return errors;
+  };
+
+  const validateMissionProjectDetailed = async (project) => {
+    try {
+      const schema = await fetchMissionProjectSchema();
+      const errors = validateAgainstSchema(project, schema);
+      return { valid: errors.length === 0, errors };
+    } catch (error) {
+      return { valid: false, errors: ['Unable to load schema for validation', error.message] };
+    }
   };
 
   const loadMissionProject = () => {
@@ -241,7 +331,7 @@ const MissionProjectStore = (() => {
 
   const saveMissionProject = (project) => {
     const merged = mergeWithDefaults(project);
-    merged.schemaVersion = MISSION_PROJECT_SCHEMA_VERSION;
+    merged.schemaVersion = String(project?.schemaVersion || MISSION_PROJECT_SCHEMA_VERSION);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
     return merged;
   };
@@ -413,7 +503,7 @@ const MissionProjectStore = (() => {
     const parsed = JSON.parse(jsonText || '{}');
     const normalized = normalizeLegacyProject(parsed);
     const withVersion = {
-      schemaVersion: normalized?.schemaVersion ?? MISSION_PROJECT_SCHEMA_VERSION,
+      schemaVersion: String(normalized?.schemaVersion ?? MISSION_PROJECT_SCHEMA_VERSION),
       ...normalized
     };
 
@@ -448,6 +538,8 @@ const MissionProjectStore = (() => {
     hasMissionProject,
     migrateMissionProjectIfNeeded,
     validateMissionProject,
+    validateMissionProjectDetailed,
+    fetchMissionProjectSchema,
     exportMissionProject,
     exportGeoJSON,
     exportCoTStub,

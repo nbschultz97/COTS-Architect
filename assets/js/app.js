@@ -130,11 +130,14 @@ const routes = ['home', 'workflow', 'tools', 'mission', 'demos', 'docs'];
 const MODULE_STATUS_KEY = 'ceradon_module_statuses';
 const moduleStatusOptions = ['Not Started', 'In Progress', 'Complete'];
 const DEMO_PROJECT_PATH = 'data/demo_mission_project.json';
+const LOAD_WARNING_MARGIN_KG = 2; // Small buffer before weight is flagged.
+const SUSTAINMENT_WARNING_BUFFER_HOURS = 6; // Hours of sustainment shortfall tolerated before alerting.
 let highlightedTools = [];
 let moduleStatuses = {};
 let activeModuleId = workflowModules[0].id;
 let projectStatusMessage = '';
 let projectLoadSource = '';
+let editorErrors = [];
 
 function setActiveRoute(route) {
   const target = routes.includes(route) ? route : 'home';
@@ -326,12 +329,18 @@ function buildFeasibilityItems(project) {
   const loadLimit = getNumeric(project.kitsSummary?.perOperatorLimitKg ?? project.kits?.perOperatorLimitKg, 0);
   const relayCount = getNumeric(project.meshPlan?.relayCount, 0);
   const criticalLinks = getNumeric(project.meshPlan?.criticalLinks, 0);
+  const meshLinks = Array.isArray(project.mesh_links) ? project.mesh_links.length : 0;
+  const env = Array.isArray(project.environment) && project.environment.length ? project.environment[0] : {};
+  const perOperatorLoads = Array.isArray(project.kitsSummary?.perOperatorLoads) ? project.kitsSummary.perOperatorLoads : [];
+  const avgOperatorLoad = perOperatorLoads.length
+    ? perOperatorLoads.reduce((sum, entry) => sum + getNumeric(entry.weightKg, 0), 0) / perOperatorLoads.length
+    : perPersonLoad;
 
   const sustainmentGap = sustainment - duration;
   let sustainmentStatus = 'alert';
   if (sustainmentGap >= 0) {
     sustainmentStatus = 'good';
-  } else if (sustainmentGap >= -6) {
+  } else if (sustainmentGap >= -SUSTAINMENT_WARNING_BUFFER_HOURS) {
     sustainmentStatus = 'warning';
   }
 
@@ -339,7 +348,7 @@ function buildFeasibilityItems(project) {
   let loadStatus = 'alert';
   if (loadMargin >= 0) {
     loadStatus = 'good';
-  } else if (loadMargin >= -2) {
+  } else if (loadMargin >= -LOAD_WARNING_MARGIN_KG) {
     loadStatus = 'warning';
   }
 
@@ -350,6 +359,10 @@ function buildFeasibilityItems(project) {
   } else if (relayMargin === -1) {
     relayStatus = 'warning';
   }
+
+  const rfStatus = meshLinks > 0 ? 'good' : (criticalLinks > 0 ? 'alert' : 'warning');
+  const envStatus = env.altitudeBand && env.temperatureBand ? 'good' : 'warning';
+  const avgLoadStatus = loadLimit && avgOperatorLoad ? (avgOperatorLoad <= loadLimit ? 'good' : 'warning') : 'warning';
 
   return [
     {
@@ -365,10 +378,28 @@ function buildFeasibilityItems(project) {
       status: loadStatus
     },
     {
+      title: 'Average load across team',
+      label: perOperatorLoads.length ? `${avgOperatorLoad.toFixed(1)} kg average across ${perOperatorLoads.length} roles` : 'No per-operator loads entered',
+      detail: avgLoadStatus === 'good' ? 'Average load fits within per-person limit.' : 'Balance loads or raise the limit in kitsSummary.',
+      status: avgLoadStatus
+    },
+    {
       title: 'Relays vs critical links',
       label: `${relayCount} relays vs ${criticalLinks} critical links`,
       detail: relayMargin >= 0 ? 'Relays match or exceed critical links.' : 'Add redundancy to avoid single points of failure.',
       status: relayStatus
+    },
+    {
+      title: 'RF readiness',
+      label: `${meshLinks} mesh links tracked`,
+      detail: meshLinks > 0 ? 'Links present for RF planning.' : 'Add mesh_links for contested or long-range missions.',
+      status: rfStatus
+    },
+    {
+      title: 'Environment coverage',
+      label: env.name ? `${env.name} • ${env.altitudeBand || 'Altitude n/a'} • ${env.temperatureBand || 'Temp n/a'}` : 'Environment not set',
+      detail: env.altitudeBand && env.temperatureBand ? 'Baseline environment set for all modules.' : 'Add altitudeBand and temperatureBand to environment[0].',
+      status: envStatus
     }
   ];
 }
@@ -399,6 +430,83 @@ function renderProjectStatus() {
   status.hidden = !projectStatusMessage;
 }
 
+function getActiveToolList(project) {
+  const collections = ['nodes', 'platforms', 'mesh_links', 'kits', 'constraints', 'environment', 'mission'];
+  const tools = new Set();
+  collections.forEach((key) => {
+    const value = project[key];
+    if (Array.isArray(value)) {
+      value.forEach((item) => item?.origin_tool && tools.add(item.origin_tool));
+    } else if (value && typeof value === 'object' && value.origin_tool) {
+      tools.add(value.origin_tool);
+    }
+  });
+  if (project.meta?.origin_tool) tools.add(project.meta.origin_tool);
+  return Array.from(tools);
+}
+
+function renderSchemaVersion(project) {
+  const badge = document.getElementById('schemaVersionBadge');
+  const detail = document.getElementById('schemaVersionDetail');
+  if (!badge || !detail) return;
+
+  const version = project?.schemaVersion || MISSION_PROJECT_SCHEMA_VERSION;
+  badge.textContent = version;
+  detail.textContent = version === MISSION_PROJECT_SCHEMA_VERSION
+    ? 'Schema matches the hub reference.'
+    : `Loaded payload differs from hub reference (${MISSION_PROJECT_SCHEMA_VERSION}).`;
+}
+
+function renderSchemaWarning(project) {
+  const warning = document.getElementById('schemaWarning');
+  if (!warning) return;
+  const version = project?.schemaVersion;
+  const mismatched = version && version !== MISSION_PROJECT_SCHEMA_VERSION;
+  warning.hidden = !mismatched;
+  if (mismatched) {
+    warning.textContent = `Loaded MissionProject uses schemaVersion ${version}. Hub reference is ${MISSION_PROJECT_SCHEMA_VERSION}. Data will be preserved.`;
+  } else {
+    warning.textContent = '';
+  }
+}
+
+function renderProjectSummary(project) {
+  const list = document.getElementById('projectSummaryList');
+  if (!list) return;
+  list.innerHTML = '';
+
+  const env = Array.isArray(project.environment) && project.environment.length ? project.environment[0] : {};
+  const summaryItems = [
+    { label: 'Duration', value: project.meta?.durationHours ? `${project.meta.durationHours}h` : 'Not set' },
+    { label: 'Team size', value: project.meta?.team?.size ? `${project.meta.team.size} personnel` : 'Not set' },
+    { label: 'Altitude band', value: env.altitudeBand || 'Not set' },
+    { label: 'Temperature band', value: env.temperatureBand || 'Not set' },
+    { label: 'Nodes', value: Array.isArray(project.nodes) ? project.nodes.length : 0 },
+    { label: 'Platforms', value: Array.isArray(project.platforms) ? project.platforms.length : 0 },
+    { label: 'Mesh links', value: Array.isArray(project.mesh_links) ? project.mesh_links.length : 0 },
+    { label: 'Kits', value: Array.isArray(project.kits) ? project.kits.length : 0 },
+    { label: 'Active tools', value: getActiveToolList(project).join(', ') || 'Not tagged' }
+  ];
+
+  summaryItems.forEach((item) => {
+    const row = document.createElement('li');
+    row.innerHTML = `<span>${item.label}</span><strong>${item.value}</strong>`;
+    list.appendChild(row);
+  });
+}
+
+function renderEditorErrors() {
+  const errorBox = document.getElementById('projectJsonErrors');
+  if (!errorBox) return;
+  if (!editorErrors.length) {
+    errorBox.textContent = 'JSON matches required fields.';
+    errorBox.className = 'editor-status success';
+    return;
+  }
+  errorBox.className = 'editor-status alert';
+  errorBox.innerHTML = editorErrors.map((err) => `<li>${err}</li>`).join('');
+}
+
 function renderMissionProjectStatusPanel(projectOverride) {
   const panel = document.getElementById('missionProjectStatusPanel');
   if (!panel) return;
@@ -411,6 +519,7 @@ function renderMissionProjectStatusPanel(projectOverride) {
   const nameEl = document.getElementById('statusProjectName');
   const metaEl = document.getElementById('statusProjectMeta');
   const sourceEl = document.getElementById('statusProjectSource');
+  const schemaRef = document.getElementById('statusSchemaVersion');
 
   const name = displayLoaded ? (project.meta?.name || 'Mission project') : 'No project loaded';
   const duration = project.meta?.durationHours ? `${project.meta.durationHours}h` : 'Duration not set';
@@ -422,6 +531,10 @@ function renderMissionProjectStatusPanel(projectOverride) {
     ? `${duration} • ${envLabel}`
     : 'Import a MissionProject JSON or load the demo payload.';
   if (sourceEl) sourceEl.textContent = `Source: ${sourceLabel}`;
+  if (schemaRef) schemaRef.textContent = `Schema: ${project.schemaVersion || MISSION_PROJECT_SCHEMA_VERSION}`;
+  renderSchemaVersion(project);
+  renderSchemaWarning(project);
+  renderProjectSummary(project);
 }
 
 function setProjectAlert(message, tone = 'info') {
@@ -430,6 +543,40 @@ function setProjectAlert(message, tone = 'info') {
   alertBox.textContent = message || '';
   alertBox.className = `project-alert ${tone}`;
   alertBox.hidden = !message;
+}
+
+function loadProjectJsonEditor(project) {
+  const editor = document.getElementById('projectJsonEditor');
+  if (!editor) return;
+  editor.value = JSON.stringify(project, null, 2);
+}
+
+async function validateProjectJsonEditor(applyAfterValidate = false) {
+  const editor = document.getElementById('projectJsonEditor');
+  if (!editor) return;
+  try {
+    const parsed = JSON.parse(editor.value || '{}');
+    const { valid, errors } = await MissionProjectStore.validateMissionProjectDetailed(parsed);
+    editorErrors = errors || [];
+    if (applyAfterValidate && valid) {
+      const saved = MissionProjectStore.importMissionProjectFromText(editor.value);
+      projectStatusMessage = saved.meta?.name ? `Imported project: ${saved.meta.name}` : 'Project applied from editor.';
+      projectLoadSource = 'JSON editor';
+      hydrateProjectForm('JSON editor');
+      renderMissionProjectStatusPanel(saved);
+      setProjectAlert('JSON applied to MissionProject store.', 'success');
+    } else if (applyAfterValidate && !valid) {
+      setProjectAlert('Fix schema errors before applying to the workspace.', 'alert');
+    } else if (valid) {
+      setProjectAlert('JSON looks valid against schema reference.', 'success');
+    } else {
+      setProjectAlert('Validation found schema issues. See error list below.', 'alert');
+    }
+  } catch (error) {
+    editorErrors = [error.message];
+    setProjectAlert('Invalid JSON. Please fix syntax before applying.', 'alert');
+  }
+  renderEditorErrors();
 }
 
 function hydrateProjectForm(sourceLabel) {
@@ -462,6 +609,9 @@ function hydrateProjectForm(sourceLabel) {
   renderFeasibility(project);
   renderProjectStatus();
   renderMissionProjectStatusPanel(project);
+  loadProjectJsonEditor(project);
+  editorErrors = [];
+  renderEditorErrors();
 }
 
 function syncProjectFromForm() {
@@ -572,6 +722,8 @@ function bindProjectActions() {
   const demoBtn = document.getElementById('loadDemoProject');
   const exportGeoBtn = document.getElementById('exportGeo');
   const exportCoTBtn = document.getElementById('exportCoT');
+  const validateBtn = document.getElementById('validateProjectJson');
+  const applyBtn = document.getElementById('applyProjectJson');
 
   exportBtn?.addEventListener('click', (event) => {
     event.preventDefault();
@@ -596,6 +748,16 @@ function bindProjectActions() {
   demoBtn?.addEventListener('click', (event) => {
     event.preventDefault();
     loadDemoProject(demoBtn);
+  });
+
+  validateBtn?.addEventListener('click', (event) => {
+    event.preventDefault();
+    validateProjectJsonEditor(false);
+  });
+
+  applyBtn?.addEventListener('click', (event) => {
+    event.preventDefault();
+    validateProjectJsonEditor(true);
   });
 }
 

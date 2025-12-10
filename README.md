@@ -1,6 +1,6 @@
 # Ceradon Architect Stack Hub
 
-This repo is the front-door, static SPA hub for the Ceradon Architect tools, published via GitHub Pages at <https://nbschultz97.github.io/Ceradon-Architect/>. It links to the live module apps, explains the integrated planning workflow, and now provides a single-page Mission Workflow dashboard that embeds every planner.
+This repo is the front-door, static SPA hub for the Ceradon Architect tools, published via GitHub Pages at <https://nbschultz97.github.io/Ceradon-Architect/>. It links to the live module apps, explains the integrated planning workflow, and now provides a single-page Mission Workflow dashboard that embeds every planner. The authoritative MissionProject schema lives here and is surfaced throughout the UI.
 
 ## Quick start
 - Serve locally with any static file host (e.g., `python -m http.server 8000`) and open `http://localhost:8000`.
@@ -27,15 +27,16 @@ This repo is the front-door, static SPA hub for the Ceradon Architect tools, pub
 - A feasibility panel reads the stored project JSON and highlights sustainment coverage, kit weight margins, and comms relay redundancy.
 
 ## MissionProject schema and helpers
-- MissionProject schema v2 lives in `assets/js/mission_project.js` and persists to `localStorage` under `ceradon_mission_project`. Full reference: `docs/mission_project_schema.md`.
-- Core shape: `meta`, `environment[]`, `nodes[]`, `platforms[]`, `mesh_links[]`, `kits[]`, `mission{tasks,phases,assignments}`, `constraints[]`, `sustainment`, `meshPlan` summary, `kitsSummary`. Every entity includes `origin_tool` for cross-tool provenance.
+- MissionProject schema v2.0.0 is defined in `schema/mission_project_schema_v2.json` and described in `docs/mission_project_schema.md`. The UI surfaces the current version in a schema card and warns on mismatches.
+- Core shape: `schemaVersion`, `meta`, `environment[]`, `nodes[]`, `platforms[]`, `mesh_links[]`, `kits[]`, `mission{tasks,phases,assignments,mission_cards}`, `constraints[]`, `sustainment`, `meshPlan` summary, `kitsSummary`, and `exports`. Every entity includes `origin_tool` for cross-tool provenance.
 
 - Helper API exposed globally as `MissionProjectStore`:
   - `createEmptyMissionProject()`, `loadMissionProject()`, `saveMissionProject(updatedProject)`
   - `exportMissionProject(fileName)`, `exportGeoJSON()`, `exportCoTStub()` / `importMissionProject(file)`
-  - `validateMissionProject()` and `migrateMissionProjectIfNeeded(project)` placeholders for forward compatibility
+  - `validateMissionProject()` plus `validateMissionProjectDetailed()` (schema-backed) and `fetchMissionProjectSchema()` helpers
 - The workflow dashboard form writes directly to this object, so other repos can read the same structure without extra wiring.
 - Sample demo: `data/demo_mission_project.json` provides a neutral COTS planning scenario with TAK-ready exports.
+- Data flow reference: `docs/stack_workflows.md` documents mission-first, kit-first, and RF-first chains and stresses preserving unknown fields when round-tripping.
 
 ## Tool deep links
 - Node Architect: <https://node.ceradonsystems.com/web/index.html>
