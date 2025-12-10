@@ -731,6 +731,138 @@ h1, h2, h3, h4 {
   margin-bottom: 0;
 }
 
+.workflow-examples {
+  margin: 20px 0;
+  display: grid;
+  gap: 12px;
+}
+
+.workflow-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.schema-info {
+  margin: 16px 0;
+}
+
+.schema-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 10px;
+}
+
+.schema-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.schema-badge {
+  background: var(--accent);
+  color: #0b0e17;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  min-width: 80px;
+  text-align: center;
+}
+
+.schema-roles {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  display: grid;
+  gap: 6px;
+}
+
+.schema-warning {
+  border: 1px solid #fbbf24;
+  background: rgba(251, 191, 36, 0.08);
+  color: var(--text);
+  padding: 10px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.editor-card {
+  display: grid;
+  gap: 10px;
+}
+
+.summary-panel {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  background: var(--card);
+}
+
+.summary-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.summary-list li {
+  display: flex;
+  justify-content: space-between;
+  background: var(--panel);
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.json-editor {
+  width: 100%;
+  min-height: 220px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  padding: 10px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  resize: vertical;
+}
+
+.editor-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.editor-status {
+  margin: 0;
+  padding-left: 16px;
+  list-style: disc;
+  color: var(--muted);
+}
+
+.editor-status.success {
+  list-style: none;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid #2dd4bf;
+  background: rgba(45, 212, 191, 0.12);
+}
+
+.editor-status.alert {
+  border-left: 4px solid #f87171;
+  padding: 8px 12px;
+  background: rgba(248, 113, 113, 0.08);
+  border-radius: 10px;
+}
+
 .small {
   color: var(--muted);
   font-size: 14px;

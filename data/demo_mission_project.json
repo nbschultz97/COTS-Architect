@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": "2.0.0",
   "projectId": "mission-sample-demo",
   "meta": {
     "name": "Sample demo project",
@@ -8,7 +8,8 @@
     "origin_tool": "hub",
     "scenario": "Sample training lane",
     "inventoryReference": "DEMO-COTS-001",
-    "accessCode": "ARC-STACK-761"
+    "accessCode": "ARC-STACK-761",
+    "team": { "size": 4, "roles": ["Team lead", "UxS operator", "Payload tech", "Mesh lead"] }
   },
   "environment": [
     {
@@ -205,11 +206,18 @@
     "sustainmentHours": 60,
     "batteryCounts": 18,
     "feasibility": {},
-    "notes": "Rotate batteries indoors between sorties"
+    "notes": "Rotate batteries indoors between sorties",
+    "power_plan": "Stage charging at base relay; rotate two hot swaps per sortie window.",
+    "packing_lists": [
+      { "label": "Team lead", "items": ["Tripod", "Battery kit", "RF spares"] },
+      { "label": "UxS operator", "items": ["Quad case", "Props", "ESC", "Tape"] }
+    ]
   },
   "meshPlan": {
     "relayCount": 2,
-    "criticalLinks": 2
+    "criticalLinks": 2,
+    "rf_bands": ["L/S", "2.4 GHz", "UHF"],
+    "ew_profile": "Low interference training lane"
   },
   "kitsSummary": {
     "perOperatorLoads": [
@@ -218,5 +226,12 @@
     ],
     "perOperatorLoadKg": 18.5,
     "perOperatorLimitKg": 22
+  },
+  "exports": {
+    "links": [
+      { "type": "CoT", "status": "planned", "notes": "TAK-ready stub for team import" },
+      { "type": "GeoJSON", "status": "planned", "notes": "Geometry for RF overlays" }
+    ],
+    "notes": "Keep exports aligned to schema v2.0.0"
   }
 }
