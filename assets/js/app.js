@@ -3,6 +3,39 @@
 // - Theme tokens live in assets/css/styles.css
 // - Add new tools/demos by editing the data blocks below
 
+const APP_VERSION = 'Architect Hub v0.4.0';
+const DEMO_ACCESS_CODE = 'ARC-STACK-761';
+const DEMO_ACCESS_KEY = 'ceradon_demo_code';
+const CHANGE_LOG = [
+  {
+    version: 'v0.4.0',
+    date: '2024-06-06',
+    changes: [
+      'Added version and schema badges with mirrored footer metadata.',
+      'Introduced access overlays, status cards, and timestamps for MissionProject.',
+      'Consolidated modules/workflows copy and added a collapsible change log.'
+    ]
+  },
+  {
+    version: 'v0.3.1',
+    date: '2024-05-20',
+    changes: [
+      'Refined MissionProject validation, summaries, and schema warnings.',
+      'Improved embedded workflow navigation and module status tracking.'
+    ]
+  },
+  {
+    version: 'v0.3.0',
+    date: '2024-05-05',
+    changes: [
+      'Initial static hub with MissionProject storage, exports, and tool launchers.'
+    ]
+  }
+];
+
+window.DEMO_ACCESS_CODE = DEMO_ACCESS_CODE;
+window.DEMO_ACCESS_KEY = DEMO_ACCESS_KEY;
+
 const toolData = [
   {
     name: 'Mission Architect',
@@ -139,6 +172,14 @@ let projectStatusMessage = '';
 let projectLoadSource = '';
 let editorErrors = [];
 
+const hasDemoAccess = () => localStorage.getItem(DEMO_ACCESS_KEY) === DEMO_ACCESS_CODE;
+
+function formatTimestamp(value) {
+  if (!value) return 'Not set';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Not set' : date.toLocaleString();
+}
+
 function setActiveRoute(route) {
   const target = routes.includes(route) ? route : 'home';
 
@@ -155,6 +196,34 @@ function setActiveRoute(route) {
 function handleHashChange() {
   const hash = window.location.hash.replace('#/', '') || 'home';
   setActiveRoute(hash);
+}
+
+function renderVersionBadges() {
+  document.querySelectorAll('[data-app-version]').forEach((el) => {
+    el.textContent = APP_VERSION;
+  });
+  document.querySelectorAll('[data-schema-version]').forEach((el) => {
+    el.textContent = `MissionProject schema v${MISSION_PROJECT_SCHEMA_VERSION}`;
+  });
+}
+
+function renderChangeLog() {
+  const container = document.getElementById('changeLogEntries');
+  if (!container) return;
+  container.innerHTML = '';
+
+  CHANGE_LOG.forEach((entry) => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'change-log-entry';
+    wrapper.innerHTML = `
+      <div class="change-log-header">
+        <strong>${entry.version}</strong>
+        <span class="small muted">${entry.date}</span>
+      </div>
+      <ul class="change-log-list">${entry.changes.map((item) => `<li>${item}</li>`).join('')}</ul>
+    `;
+    container.appendChild(wrapper);
+  });
 }
 
 function buildTools() {
@@ -507,6 +576,31 @@ function renderEditorErrors() {
   errorBox.innerHTML = editorErrors.map((err) => `<li>${err}</li>`).join('');
 }
 
+function applyWorkflowGuard() {
+  const guard = document.getElementById('workflowGuard');
+  const overlay = document.getElementById('workflowAccessOverlay');
+  const banner = document.getElementById('workflowAccessBanner');
+  const dashboard = document.querySelector('.workflow-dashboard');
+  const authorized = hasDemoAccess();
+
+  if (guard) {
+    guard.classList.toggle('locked', !authorized);
+    guard.setAttribute('aria-busy', (!authorized).toString());
+  }
+  if (overlay) {
+    overlay.style.display = authorized ? 'none' : 'flex';
+  }
+  if (dashboard) {
+    dashboard.classList.toggle('blurred', !authorized);
+    dashboard.setAttribute('aria-hidden', (!authorized).toString());
+  }
+  if (banner) {
+    banner.hidden = !authorized;
+  }
+}
+
+window.applyWorkflowGuard = applyWorkflowGuard;
+
 function renderMissionProjectStatusPanel(projectOverride) {
   const panel = document.getElementById('missionProjectStatusPanel');
   if (!panel) return;
@@ -514,24 +608,36 @@ function renderMissionProjectStatusPanel(projectOverride) {
   const project = projectOverride || MissionProjectStore.loadMissionProject();
   const hasStoredProject = MissionProjectStore.hasMissionProject();
   const env = Array.isArray(project.environment) && project.environment.length ? project.environment[0] : {};
-  const displayLoaded = projectLoadSource && projectLoadSource !== 'Starter template';
+  const lastUpdated = MissionProjectStore.getLastUpdated();
+  const displayLoaded = hasStoredProject && projectLoadSource && projectLoadSource !== 'Starter template';
 
   const nameEl = document.getElementById('statusProjectName');
   const metaEl = document.getElementById('statusProjectMeta');
   const sourceEl = document.getElementById('statusProjectSource');
   const schemaRef = document.getElementById('statusSchemaVersion');
+  const updatedRef = document.getElementById('statusLastUpdated');
+  const statusActions = document.getElementById('statusActions');
+  const importBtn = document.getElementById('homeImportProject');
+  const clearBtn = document.getElementById('homeClearProject');
 
   const name = displayLoaded ? (project.meta?.name || 'Mission project') : 'No project loaded';
   const duration = project.meta?.durationHours ? `${project.meta.durationHours}h` : 'Duration not set';
   const envLabel = env?.name || env?.altitudeBand || 'Environment not set';
-  const sourceLabel = projectLoadSource || (hasStoredProject ? 'Local storage' : 'Not loaded');
+  const sourceLabel = displayLoaded ? projectLoadSource : 'Not loaded';
+  const updatedLabel = displayLoaded ? formatTimestamp(lastUpdated) : 'Not set';
 
   if (nameEl) nameEl.textContent = name;
   if (metaEl) metaEl.textContent = displayLoaded
     ? `${duration} • ${envLabel}`
-    : 'Import a MissionProject JSON or load the demo payload.';
-  if (sourceEl) sourceEl.textContent = `Source: ${sourceLabel}`;
-  if (schemaRef) schemaRef.textContent = `Schema: ${project.schemaVersion || MISSION_PROJECT_SCHEMA_VERSION}`;
+    : 'No MissionProject loaded. Use the demo payload to start.';
+  if (sourceEl) sourceEl.textContent = sourceLabel;
+  if (schemaRef) schemaRef.textContent = project.schemaVersion || MISSION_PROJECT_SCHEMA_VERSION;
+  if (updatedRef) updatedRef.textContent = updatedLabel;
+  if (statusActions) {
+    const lockToDemo = !displayLoaded;
+    if (importBtn) importBtn.hidden = lockToDemo;
+    if (clearBtn) clearBtn.hidden = lockToDemo;
+  }
   renderSchemaVersion(project);
   renderSchemaWarning(project);
   renderProjectSummary(project);
@@ -817,8 +923,17 @@ function initApp() {
   initWorkflowDashboard();
   bindStatusPanelActions();
   initThemeToggle();
+  renderVersionBadges();
+  renderChangeLog();
+  applyWorkflowGuard();
   handleHashChange();
   window.addEventListener('hashchange', handleHashChange);
+  window.addEventListener('ceradon-demo-authorized', applyWorkflowGuard);
+  window.addEventListener('storage', (event) => {
+    if (event.key === DEMO_ACCESS_KEY) {
+      applyWorkflowGuard();
+    }
+  });
 }
 
 document.addEventListener('DOMContentLoaded', initApp);

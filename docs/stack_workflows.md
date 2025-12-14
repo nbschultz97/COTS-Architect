@@ -1,6 +1,6 @@
 # Architect Stack workflows
 
-This hub is the connective tissue across Mission Architect, Node Architect, UxS Architect, Mesh Architect, and KitSmith. Every module reads/writes the same `MissionProject` JSON (see `docs/mission_project_schema.md`). Unknown fields should be preserved during edits to avoid data loss.
+This hub is the connective tissue across Mission Architect, Node Architect, UxS Architect, Mesh Architect, and KitSmith. Every module reads/writes the same `MissionProject` JSON (see `docs/mission_project_schema.md`). Unknown fields should be preserved during edits to avoid data loss. Current reference: **schemaVersion 2.0.0**.
 
 ## Data flow overview
 
