@@ -162,6 +162,11 @@
       <button class="toggle" id="themeToggle" aria-label="Toggle light or dark theme">🌙</button>
     </header>
 
+    <div class="version-strip" aria-label="Application version and schema version">
+      <span class="pill" id="appVersionBadge" data-app-version></span>
+      <span class="pill subtle" id="schemaHeaderBadge" data-schema-version></span>
+    </div>
+
     <main id="app" class="view-container">
     <section id="home" class="view" aria-label="Home view">
       <div class="hero">
@@ -175,131 +180,30 @@
           </div>
           <p class="small muted">Access-code gated demos run in-browser. No external APIs or vendor lock-in.</p>
         </div>
-        <div class="hero-panel">
-          <h3>Stack At-a-Glance</h3>
-          <ul class="stack-list">
-            <li><strong>Mission Architect</strong><span>Mission-first composition, phases, constraints, exports.</span></li>
-            <li><strong>Node Architect</strong><span>Field nodes, payloads, power envelopes, and environment constraints.</span></li>
-            <li><strong>UxS Architect</strong><span>Platform pairing, payload lift, and sortie timing.</span></li>
-            <li><strong>Mesh Architect</strong><span>RF coverage, relays, rf_bands, and EW context.</span></li>
-            <li><strong>KitSmith</strong><span>Kits, sustainment, power plans, and team packaging.</span></li>
+      </div>
+
+      <div class="modules-workflows" aria-label="Modules and workflows overview">
+        <div class="mw-card">
+          <h3>Modules</h3>
+          <p class="small muted">One MissionProject JSON feeds every planner.</p>
+          <ul class="bullet-list modules-list">
+            <li><strong>Mission Architect:</strong> Mission composition, constraints, AO geometry, and exports.</li>
+            <li><strong>Node Architect:</strong> Sensor nodes, payload stacking, and RF/power envelopes.</li>
+            <li><strong>UxS Architect:</strong> Platform pairing, lift margins, and sortie timing.</li>
+            <li><strong>Mesh Architect:</strong> Mesh links, relays, RF bands, and EW-aware coverage.</li>
+            <li><strong>KitSmith:</strong> Kits, sustainment, power plans, and team loadouts.</li>
           </ul>
         </div>
-      </div>
-
-      <div class="toolchain" aria-label="Architect toolchain">
-        <h2 class="strip-title">Toolchain</h2>
-        <p class="lead">Move through the stack in sequence or jump in by mission, inventory, or RF need. Every step honors the same demo access code and the shared MissionProject JSON.</p>
-        <div class="toolchain-steps">
-          <article class="step-card">
-            <div>
-              <p class="eyebrow">Step 1</p>
-              <h3>Node Architect</h3>
-              <p>Outline sensing nodes, payload stacks, and power envelopes for field hides and relay sites.</p>
-            </div>
-            <a class="btn primary" href="https://node.ceradonsystems.com/web/index.html" target="_blank" rel="noopener">Launch Demo</a>
-          </article>
-          <article class="step-card">
-            <div>
-              <p class="eyebrow">Step 2</p>
-              <h3>UxS Architect</h3>
-              <p>Pair the nodes to low-cost airframes, check lift/power margins, and keep sorties aligned to terrain.</p>
-            </div>
-            <a class="btn primary" href="https://uxs.ceradonsystems.com/web/" target="_blank" rel="noopener">Launch Demo</a>
-          </article>
-          <article class="step-card">
-            <div>
-              <p class="eyebrow">Step 3</p>
-              <h3>Mesh Architect</h3>
-              <p>Plan relays, mesh redundancy, and RF entry points tailored to the mission environment.</p>
-            </div>
-            <a class="btn primary" href="https://mesh.ceradonsystems.com/" target="_blank" rel="noopener">Launch Demo</a>
-          </article>
-          <article class="step-card">
-            <div>
-              <p class="eyebrow">Step 4</p>
-              <h3>KitSmith</h3>
-              <p>Package ruck-level spares, batteries, and field repairs that match sortie plans.</p>
-            </div>
-            <a class="btn primary" href="https://kitsmith.ceradonsystems.com/" target="_blank" rel="noopener">Launch Demo</a>
-          </article>
-          <article class="step-card">
-            <div>
-              <p class="eyebrow">Step 5</p>
-              <h3>Mission Architect</h3>
-              <p>Drive phases, constraints, and overlays that keep every downstream tool aligned.</p>
-            </div>
-            <a class="btn primary" href="https://mission.ceradonsystems.com/" target="_blank" rel="noopener">Launch Demo</a>
-          </article>
+        <div class="mw-card">
+          <h3>Workflows</h3>
+          <p class="small muted">Mission-first, kit-first, or RF-first chains match <a href="docs/stack_workflows.md" target="_blank" rel="noopener">stack_workflows.md</a>.</p>
+          <ul class="bullet-list">
+            <li><strong>Mission-first:</strong> Mission Architect → Node Architect → UxS Architect → Mesh Architect → KitSmith.</li>
+            <li><strong>Kit/sustainment-first:</strong> KitSmith → Mission Architect → Node Architect → UxS Architect → Mesh Architect.</li>
+            <li><strong>RF-first:</strong> Mesh Architect → Mission Architect → Node Architect → UxS Architect → KitSmith.</li>
+          </ul>
+          <p class="small muted">Launch modules from the Tools view or embedded workflow below. All paths preserve the same MissionProject schema.</p>
         </div>
-        <div class="entry-modes" aria-label="Alternate entry modes">
-          <h4>Non-linear entry options</h4>
-          <p class="small muted">Start wherever you need—mission-first, inventory-first, or RF-first—and the MissionProject JSON keeps everything in sync.</p>
-        <div class="entry-diagram" role="img" aria-label="Mission-first, inventory-first, and RF-first entry options">
-          <div class="entry-node">Mission-first<div class="entry-sub">Mission Architect → rest of stack</div></div>
-          <div class="entry-node">Inventory-first<div class="entry-sub">Node Architect → UxS → Mesh → Kits</div></div>
-          <div class="entry-node">RF-first<div class="entry-sub">Mesh Architect anchors coverage</div></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="workflow-examples" aria-label="Example workflows">
-      <h3>Example workflows</h3>
-      <div class="workflow-cards">
-        <article class="card">
-          <p class="eyebrow">Mission-first</p>
-          <h4>Plan by intent</h4>
-          <p>Mission Architect → Node Architect → UxS Architect → Mesh Architect → KitSmith. Start with constraints and phases, then flow RF and sustainment downstream.</p>
-        </article>
-        <article class="card">
-          <p class="eyebrow">Kit/sustainment-first</p>
-          <h4>Plan by weight & power</h4>
-          <p>KitSmith → Mission Architect → Node Architect → UxS Architect → Mesh Architect. Use sustainment baselines and per-operator limits to bound the rest of the stack.</p>
-        </article>
-        <article class="card">
-          <p class="eyebrow">RF-first</p>
-          <h4>Plan by spectrum</h4>
-          <p>Mesh Architect → Mission Architect → Node Architect → UxS Architect → KitSmith. Use bands and EW profile to gate payloads and endurance before packaging kits.</p>
-        </article>
-      </div>
-    </div>
-
-      <div class="card-grid" aria-label="Tool quick launch">
-        <article class="card">
-          <div>
-            <h3>Node Architect</h3>
-            <p>Define sensing nodes, payload stacks, and deployment envelopes from inventory or greenfield concepts.</p>
-          </div>
-          <a class="btn subtle" href="https://node.ceradonsystems.com/web/index.html" target="_blank" rel="noopener">Launch</a>
-        </article>
-        <article class="card">
-          <div>
-            <h3>UxS Architect</h3>
-            <p>Pair nodes to unmanned air/ground/surface platforms with power, payload, and range checks.</p>
-          </div>
-          <a class="btn subtle" href="https://uxs.ceradonsystems.com/web/" target="_blank" rel="noopener">Launch</a>
-        </article>
-        <article class="card">
-          <div>
-            <h3>Mesh Architect</h3>
-            <p>Plan RF meshes, relays, and gateways to backhaul small teams and unmanned assets.</p>
-          </div>
-          <a class="btn subtle" href="https://mesh.ceradonsystems.com/" target="_blank" rel="noopener">Launch</a>
-        </article>
-        <article class="card">
-          <div>
-            <h3>KitSmith</h3>
-            <p>Assemble sustainment kits, spares, and team loadouts tied to mission phases.</p>
-          </div>
-          <a class="btn subtle" href="https://kitsmith.ceradonsystems.com/" target="_blank" rel="noopener">Launch</a>
-        </article>
-        <article class="card">
-          <div>
-            <h3>Mission Architect</h3>
-            <p>Compose missions, phases, and constraints that drive the rest of the stack.</p>
-          </div>
-          <a class="btn subtle" href="https://mission.ceradonsystems.com/" target="_blank" rel="noopener">Launch</a>
-        </article>
       </div>
 
       <div class="missionproject-callout" aria-label="MissionProject JSON overview">
@@ -341,23 +245,34 @@
       </div>
 
       <div class="missionproject-status" id="missionProjectStatusPanel" aria-live="polite">
-        <div>
+        <div class="status-body">
           <p class="eyebrow">MissionProject status</p>
           <h3 id="statusProjectName">No project loaded</h3>
-          <p class="small" id="statusProjectMeta">Import a MissionProject JSON or load the demo payload.</p>
-          <p class="small muted" id="statusProjectSource">Source: Not loaded</p>
-          <p class="small muted" id="statusSchemaVersion"></p>
+          <p class="small" id="statusProjectMeta">No MissionProject loaded. Use the demo payload to start.</p>
+          <div class="status-meta-grid">
+            <div>
+              <p class="small muted">Schema</p>
+              <strong id="statusSchemaVersion">v2.0.0</strong>
+            </div>
+            <div>
+              <p class="small muted">Source</p>
+              <strong id="statusProjectSource">Not loaded</strong>
+            </div>
+            <div>
+              <p class="small muted">Last updated</p>
+              <strong id="statusLastUpdated">Not set</strong>
+            </div>
+          </div>
         </div>
-        <div class="status-actions">
+        <div class="status-actions" id="statusActions">
           <button class="btn primary" id="homeLoadDemo" data-default-label="Load demo project">Load demo project</button>
-          <button class="btn ghost" id="homeImportProject">Import JSON</button>
+          <button class="btn ghost" id="homeImportProject">Import MissionProject JSON</button>
           <button class="btn subtle" id="homeClearProject">Clear</button>
           <input type="file" id="homeImportProjectFile" accept="application/json" hidden>
         </div>
       </div>
 
     </section>
-
     <section id="workflow" class="view" aria-label="Workflow view" hidden>
       <div class="section-header">
         <div>
@@ -368,126 +283,137 @@
         </div>
       </div>
 
-      <div class="workflow-dashboard">
-        <aside class="module-sidebar" id="moduleSidebar" aria-label="Workflow module navigation"></aside>
+      <div class="demo-banner" id="workflowAccessBanner" hidden>Demo only — neutral COTS sample data, no real missions.</div>
 
-        <div class="workflow-main">
-          <div class="module-panel">
-            <div class="module-panel-header">
-              <div>
-                <p class="eyebrow" id="moduleCategory">Module</p>
-                <h3 id="moduleTitle">Platform Designer (Node + UxS)</h3>
-                <p class="small" id="moduleDescription"></p>
-              </div>
-              <div class="status-control">
-                <label for="moduleStatus">Status</label>
-                <select id="moduleStatus" aria-label="Module status selector">
-                  <option value="Not Started">Not Started</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Complete">Complete</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="module-links" id="moduleLinks"></div>
-            <div class="embed-container" id="moduleEmbed"></div>
+      <div class="workflow-guard" id="workflowGuard" data-guarded="true">
+        <div class="workflow-overlay" id="workflowAccessOverlay">
+          <div>
+            <h3>Demo access required</h3>
+            <p class="small muted">Enter the access code to unlock embedded planners and MissionProject edits.</p>
           </div>
+        </div>
 
-          <div class="project-layout">
-            <div class="card project-card">
-              <h3>Mission project</h3>
-              <p class="small">Edit the shared mission project JSON that every module reads and writes. Values persist locally under <code>ceradon_mission_project</code>.</p>
+        <div class="workflow-dashboard">
+          <aside class="module-sidebar" id="moduleSidebar" aria-label="Workflow module navigation"></aside>
 
-              <form class="project-form" id="projectMetaForm">
-                <div class="form-grid">
-                  <label>Mission name
-                    <input type="text" id="missionName" name="missionName" autocomplete="off">
-                  </label>
-                  <label>Environment – altitude band
-                    <select id="altitudeBand" name="altitudeBand">
-                      <option value="0-1000m">0-1000m</option>
-                      <option value="1000-2500m">1000-2500m</option>
-                      <option value=">2500m">&gt;2500m</option>
-                    </select>
-                  </label>
-                  <label>Environment – temperature band
-                    <select id="temperatureBand" name="temperatureBand">
-                      <option value="10-25C">10-25°C</option>
-                      <option value="-10-10C">-10 to 10°C</option>
-                      <option value="25-40C">25-40°C</option>
-                    </select>
-                  </label>
-                  <label>Duration (hours)
-                    <select id="durationHours" name="durationHours">
-                      <option value="24">24</option>
-                      <option value="48">48</option>
-                      <option value="72">72</option>
-                    </select>
-                  </label>
-                  <label>Inventory catalog reference
-                    <input type="text" id="inventoryReference" name="inventoryReference" autocomplete="off">
-                  </label>
-                  <label>Planned sustainment hours
-                    <input type="number" id="sustainmentHours" name="sustainmentHours" min="0" step="1">
-                  </label>
-                  <label>Per-person kit load (kg)
-                    <input type="number" id="perPersonLoad" name="perPersonLoad" min="0" step="0.5">
-                  </label>
-                  <label>Per-person weight limit (kg)
-                    <input type="number" id="perPersonLimit" name="perPersonLimit" min="0" step="0.5">
-                  </label>
-                  <label>Comms relay count
-                    <input type="number" id="relayCount" name="relayCount" min="0" step="1">
-                  </label>
-                  <label>Critical links
-                    <input type="number" id="criticalLinks" name="criticalLinks" min="0" step="1">
-                  </label>
-                </div>
-              </form>
-
-              <div class="project-actions">
-                <div class="project-alert" id="projectAlert" role="status" aria-live="polite" hidden></div>
-                <div class="action-row">
-                  <button class="btn primary" id="exportProject">Export MissionProject (.json)</button>
-                  <button class="btn ghost" id="importProject">Import MissionProject (.json)</button>
-                  <input type="file" id="importProjectFile" accept="application/json" hidden>
-                  <button class="btn subtle" id="exportGeo">Export GeoJSON</button>
-                  <button class="btn subtle" id="exportCoT">Export CoT Stub</button>
-                </div>
-                <div class="action-row">
-                  <button class="btn primary" id="loadDemoProject" data-default-label="Load demo project">Load demo project</button>
-                  <p class="small" id="projectStatus" aria-live="polite"></p>
-                </div>
-              </div>
-            </div>
-
-            <div class="card editor-card" aria-label="MissionProject viewer and editor">
-              <div class="editor-header">
+          <div class="workflow-main">
+            <div class="module-panel">
+              <div class="module-panel-header">
                 <div>
-                  <h3>MissionProject viewer / editor</h3>
-                  <p class="small">Inspect, validate, and apply MissionProject JSON. Validation checks against <code>schema/mission_project_schema_v2.json</code>.</p>
+                  <p class="eyebrow" id="moduleCategory">Module</p>
+                  <h3 id="moduleTitle">Platform Designer (Node + UxS)</h3>
+                  <p class="small" id="moduleDescription"></p>
+                </div>
+                <div class="status-control">
+                  <label for="moduleStatus">Status</label>
+                  <select id="moduleStatus" aria-label="Module status selector">
+                    <option value="Not Started">Not Started</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Complete">Complete</option>
+                  </select>
                 </div>
               </div>
-              <div class="summary-panel">
-                <p class="eyebrow">Quick summary</p>
-                <ul class="summary-list" id="projectSummaryList"></ul>
-              </div>
-              <label class="small" for="projectJsonEditor">JSON payload</label>
-              <textarea id="projectJsonEditor" class="json-editor" rows="14" aria-label="MissionProject JSON editor"></textarea>
-              <div class="editor-actions">
-                <button class="btn subtle" id="validateProjectJson">Validate JSON</button>
-                <button class="btn primary" id="applyProjectJson">Apply to workspace</button>
-                <a class="btn ghost" href="schema/mission_project_schema_v2.json" target="_blank" rel="noopener">Open schema file</a>
-              </div>
-              <ul class="editor-status" id="projectJsonErrors"></ul>
+
+              <div class="module-links" id="moduleLinks"></div>
+              <div class="embed-container" id="moduleEmbed"></div>
             </div>
 
-            <div class="card feasibility-card">
-              <div class="feasibility-header">
-                <h3>Mission Feasibility</h3>
-                <p class="small">Reads from the stored project JSON. Color cues flag sustainment, weight, and comms coverage gaps.</p>
+            <div class="project-layout">
+              <div class="card project-card">
+                <h3>Mission project</h3>
+                <p class="small">Edit the shared mission project JSON that every module reads and writes. Values persist locally under <code>ceradon_mission_project</code>.</p>
+
+                <form class="project-form" id="projectMetaForm">
+                  <div class="form-grid">
+                    <label>Mission name
+                      <input type="text" id="missionName" name="missionName" autocomplete="off">
+                    </label>
+                    <label>Environment – altitude band
+                      <select id="altitudeBand" name="altitudeBand">
+                        <option value="0-1000m">0-1000m</option>
+                        <option value="1000-2500m">1000-2500m</option>
+                        <option value=">2500m">&gt;2500m</option>
+                      </select>
+                    </label>
+                    <label>Environment – temperature band
+                      <select id="temperatureBand" name="temperatureBand">
+                        <option value="10-25C">10-25°C</option>
+                        <option value="-10-10C">-10 to 10°C</option>
+                        <option value="25-40C">25-40°C</option>
+                      </select>
+                    </label>
+                    <label>Duration (hours)
+                      <select id="durationHours" name="durationHours">
+                        <option value="24">24</option>
+                        <option value="48">48</option>
+                        <option value="72">72</option>
+                      </select>
+                    </label>
+                    <label>Inventory catalog reference
+                      <input type="text" id="inventoryReference" name="inventoryReference" autocomplete="off">
+                    </label>
+                    <label>Planned sustainment hours
+                      <input type="number" id="sustainmentHours" name="sustainmentHours" min="0" step="1">
+                    </label>
+                    <label>Per-person kit load (kg)
+                      <input type="number" id="perPersonLoad" name="perPersonLoad" min="0" step="0.5">
+                    </label>
+                    <label>Per-person weight limit (kg)
+                      <input type="number" id="perPersonLimit" name="perPersonLimit" min="0" step="0.5">
+                    </label>
+                    <label>Comms relay count
+                      <input type="number" id="relayCount" name="relayCount" min="0" step="1">
+                    </label>
+                    <label>Critical links
+                      <input type="number" id="criticalLinks" name="criticalLinks" min="0" step="1">
+                    </label>
+                  </div>
+                </form>
+
+                <div class="project-actions">
+                  <div class="project-alert" id="projectAlert" role="status" aria-live="polite" hidden></div>
+                  <div class="action-row">
+                    <button class="btn primary" id="exportProject">Export MissionProject JSON</button>
+                    <button class="btn ghost" id="importProject">Import MissionProject JSON</button>
+                    <input type="file" id="importProjectFile" accept="application/json" hidden>
+                    <button class="btn subtle" id="exportGeo">Export GeoJSON</button>
+                    <button class="btn subtle" id="exportCoT">Export CoT Stub</button>
+                  </div>
+                  <div class="action-row">
+                    <button class="btn primary" id="loadDemoProject" data-default-label="Load demo project">Load demo project</button>
+                    <p class="small" id="projectStatus" aria-live="polite"></p>
+                  </div>
+                </div>
               </div>
-              <div class="feasibility-items" id="feasibilityItems"></div>
+
+              <div class="card editor-card" aria-label="MissionProject viewer and editor">
+                <div class="editor-header">
+                  <div>
+                    <h3>MissionProject viewer / editor</h3>
+                    <p class="small">Inspect, validate, and apply MissionProject JSON. Validation checks against <code>schema/mission_project_schema_v2.json</code>.</p>
+                  </div>
+                </div>
+                <div class="summary-panel">
+                  <p class="eyebrow">Quick summary</p>
+                  <ul class="summary-list" id="projectSummaryList"></ul>
+                </div>
+                <label class="small" for="projectJsonEditor">JSON payload</label>
+                <textarea id="projectJsonEditor" class="json-editor" rows="14" aria-label="MissionProject JSON editor"></textarea>
+                <div class="editor-actions">
+                  <button class="btn subtle" id="validateProjectJson">Validate JSON</button>
+                  <button class="btn primary" id="applyProjectJson">Apply to workspace</button>
+                  <a class="btn ghost" href="schema/mission_project_schema_v2.json" target="_blank" rel="noopener">Open schema file</a>
+                </div>
+                <ul class="editor-status" id="projectJsonErrors"></ul>
+              </div>
+
+              <div class="card feasibility-card">
+                <div class="feasibility-header">
+                  <h3>Mission Feasibility</h3>
+                  <p class="small">Reads from the stored project JSON. Color cues flag sustainment, weight, and comms coverage gaps.</p>
+                </div>
+                <div class="feasibility-items" id="feasibilityItems"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -567,6 +493,7 @@
         <p class="eyebrow">Docs & About</p>
         <h2>What is Ceradon Architect Stack?</h2>
         <p class="lead">Architect is the planning layer between COTS UxS/robotics and the logistics/C2 stack. It keeps mission intent, RF realities, and sustainment in lockstep.</p>
+        <p class="small muted">Docs: <a href="docs/mission_project_schema.md" target="_blank" rel="noopener">MissionProject schema</a> · <a href="docs/stack_workflows.md" target="_blank" rel="noopener">Stack workflows</a> · <a href="https://ceradonsystems.com" target="_blank" rel="noopener">CeradonSystems.com</a></p>
       </div>
       <div class="docs-layout">
         <div class="card">
@@ -603,6 +530,13 @@
     </section>
   </main>
 
+  <section class="change-log-section" aria-label="Change log">
+    <details>
+      <summary>Change Log</summary>
+      <div id="changeLogEntries" class="change-log"></div>
+    </details>
+  </section>
+
   <footer class="site-footer">
     <div class="footer-links">
       <a href="https://ceradonsystems.com" target="_blank" rel="noopener">CeradonSystems.com</a>
@@ -612,6 +546,11 @@
       <a href="https://kitsmith.ceradonsystems.com/" target="_blank" rel="noopener">KitSmith</a>
       <a href="https://mission.ceradonsystems.com/" target="_blank" rel="noopener">Mission Architect</a>
     </div>
+    <div class="footer-meta">
+      <span data-app-version></span>
+      <span class="divider">•</span>
+      <span data-schema-version></span>
+    </div>
     <p class="small">Ceradon Systems LLC – COTS-friendly RF and UxS planning tools.</p>
   </footer>
   </div>
@@ -620,8 +559,8 @@
   <script src="assets/js/app.js"></script>
   <script>
     (() => {
-      const ACCESS_CODE = "ARC-STACK-761";
-      const STORAGE_KEY = "ceradonDemoAuthorized";
+      const ACCESS_CODE = window.DEMO_ACCESS_CODE || "ARC-STACK-761";
+      const STORAGE_KEY = window.DEMO_ACCESS_KEY || "ceradon_demo_code";
       const gate = document.getElementById("access-gate");
       const appRoot = document.getElementById("app-root");
       const input = document.getElementById("demo-code");
@@ -641,18 +580,21 @@
       function handleAuth() {
         const value = (input?.value || "").trim();
         if (value === ACCESS_CODE) {
-          localStorage.setItem(STORAGE_KEY, "true");
+          localStorage.setItem(STORAGE_KEY, ACCESS_CODE);
           if (error) error.style.display = "none";
           showApp();
+          window.dispatchEvent(new Event("ceradon-demo-authorized"));
         } else {
           if (error) error.style.display = "block";
         }
       }
 
       document.addEventListener("DOMContentLoaded", () => {
-        const authorized = localStorage.getItem(STORAGE_KEY) === "true";
+        const storedValue = localStorage.getItem(STORAGE_KEY);
+        const authorized = storedValue === ACCESS_CODE || storedValue === "true";
         if (authorized) {
           showApp();
+          window.applyWorkflowGuard?.();
           return;
         }
 

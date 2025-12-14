@@ -11,6 +11,7 @@ const MISSION_PROJECT_SCHEMA_VERSION = '2.0.0';
 
 const MissionProjectStore = (() => {
   const STORAGE_KEY = 'ceradon_mission_project';
+  const UPDATED_AT_KEY = 'ceradon_mission_project_updated_at';
 
   const createEmptyMissionProject = () => ({
     schemaVersion: MISSION_PROJECT_SCHEMA_VERSION,
@@ -333,13 +334,17 @@ const MissionProjectStore = (() => {
     const merged = mergeWithDefaults(project);
     merged.schemaVersion = String(project?.schemaVersion || MISSION_PROJECT_SCHEMA_VERSION);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+    localStorage.setItem(UPDATED_AT_KEY, new Date().toISOString());
     return merged;
   };
 
   const clearMissionProject = () => {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(UPDATED_AT_KEY);
     return createEmptyMissionProject();
   };
+
+  const getLastUpdated = () => localStorage.getItem(UPDATED_AT_KEY);
 
   const exportMissionProject = (fileName = 'mission_project.json') => {
     const project = loadMissionProject();
@@ -544,7 +549,9 @@ const MissionProjectStore = (() => {
     exportGeoJSON,
     exportCoTStub,
     importMissionProject,
-    importMissionProjectFromText
+    importMissionProjectFromText,
+    getLastUpdated,
+    UPDATED_AT_KEY
   };
 })();
 
