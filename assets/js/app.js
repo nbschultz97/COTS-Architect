@@ -378,6 +378,7 @@ function updatePartsStatus(message) {
 // ============================================================================
 
 let platformDesignerInitialized = false;
+let currentPlatformDesign = null;
 
 function initPlatformDesigner() {
   if (platformDesignerInitialized) return;
@@ -385,49 +386,312 @@ function initPlatformDesigner() {
 
   console.log('Initializing Platform Designer...');
 
-  // Wire up validation button
+  // Initialize with empty design
+  currentPlatformDesign = PlatformDesigner.createEmptyDesign();
+
+  // Wire up form inputs
+  const platformName = document.getElementById('platformName');
+  if (platformName) {
+    platformName.addEventListener('change', (e) => {
+      currentPlatformDesign.name = e.target.value;
+    });
+  }
+
+  const platformType = document.getElementById('platformType');
+  if (platformType) {
+    platformType.addEventListener('change', (e) => {
+      currentPlatformDesign.type = e.target.value;
+    });
+  }
+
+  const envAltitude = document.getElementById('envAltitude');
+  if (envAltitude) {
+    envAltitude.addEventListener('change', (e) => {
+      currentPlatformDesign.environment.altitude_m = parseInt(e.target.value);
+    });
+  }
+
+  const envTemperature = document.getElementById('envTemperature');
+  if (envTemperature) {
+    envTemperature.addEventListener('change', (e) => {
+      currentPlatformDesign.environment.temperature_c = parseInt(e.target.value);
+    });
+  }
+
+  // Wire up action buttons
   const validateBtn = document.getElementById('validatePlatform');
   if (validateBtn) {
-    validateBtn.addEventListener('click', validatePlatform);
+    validateBtn.addEventListener('click', validateCurrentPlatform);
   }
 
   const savePlatformBtn = document.getElementById('savePlatform');
   if (savePlatformBtn) {
-    savePlatformBtn.addEventListener('click', savePlatform);
+    savePlatformBtn.addEventListener('click', saveCurrentPlatform);
   }
 
-  // TODO: Load component selectors from Parts Library
+  // Load component selectors
   loadComponentSelectors();
+
+  // Load saved designs
+  loadSavedPlatforms();
 }
 
-function loadComponentSelectors() {
+async function loadComponentSelectors() {
   const container = document.getElementById('componentSelection');
   if (!container) return;
 
-  container.innerHTML = `
-    <p class="small muted">Component selection will be populated from Parts Library</p>
-    <p class="small">Navigate to Parts Library to load components first.</p>
-  `;
+  try {
+    // Get parts from library
+    if (typeof PartsLibrary === 'undefined') {
+      container.innerHTML = `
+        <p class="small muted">Parts Library not loaded. Load parts first.</p>
+        <a class="btn subtle" href="/#/library">Go to Parts Library →</a>
+      `;
+      return;
+    }
+
+    await PartsLibrary.initDB();
+    const library = await PartsLibrary.exportLibrary();
+
+    // Create component selection UI
+    container.innerHTML = `
+      <div class="form-grid">
+        <label>Airframe
+          <select id="selectAirframe">
+            <option value="">-- Select Airframe --</option>
+            ${(library.airframes || []).map(part =>
+              `<option value="${part.id}">${part.name || part.model} (${part.weight_g}g)</option>`
+            ).join('')}
+          </select>
+        </label>
+
+        <label>Battery
+          <select id="selectBattery">
+            <option value="">-- Select Battery --</option>
+            ${(library.batteries || []).map(part =>
+              `<option value="${part.id}">${part.name || part.model} (${part.capacity_wh}Wh, ${part.weight_g}g)</option>`
+            ).join('')}
+          </select>
+        </label>
+
+        <label>ESC
+          <select id="selectESC">
+            <option value="">-- Select ESC --</option>
+            ${(library.escs || []).map(part =>
+              `<option value="${part.id}">${part.name || part.model} (${part.max_current_a}A)</option>`
+            ).join('')}
+          </select>
+        </label>
+
+        <label>Flight Controller
+          <select id="selectFC">
+            <option value="">-- Select Flight Controller --</option>
+            ${(library.flight_controllers || []).map(part =>
+              `<option value="${part.id}">${part.name || part.model}</option>`
+            ).join('')}
+          </select>
+        </label>
+      </div>
+
+      <div style="margin-top: 16px;">
+        <label>Motors (select multiple)
+          <select id="selectMotors" multiple style="min-height: 80px;">
+            ${(library.motors || []).map(part =>
+              `<option value="${part.id}">${part.name || part.model} (${part.max_thrust_g}g thrust)</option>`
+            ).join('')}
+          </select>
+          <p class="small muted">Hold Ctrl/Cmd to select multiple motors</p>
+        </label>
+      </div>
+
+      <div id="selectedComponents" style="margin-top: 16px;"></div>
+    `;
+
+    // Wire up component selections
+    const selects = ['Airframe', 'Battery', 'ESC', 'FC'];
+    selects.forEach(type => {
+      const select = document.getElementById(`select${type}`);
+      if (select) {
+        select.addEventListener('change', (e) => handleComponentSelect(type.toLowerCase().replace('fc', 'flight_controller'), e.target.value, library));
+      }
+    });
+
+    const motorSelect = document.getElementById('selectMotors');
+    if (motorSelect) {
+      motorSelect.addEventListener('change', (e) => {
+        const selectedOptions = Array.from(e.target.selectedOptions);
+        const selectedMotors = selectedOptions.map(opt => {
+          return library.motors.find(m => m.id === opt.value);
+        }).filter(m => m);
+
+        currentPlatformDesign.components.motors = selectedMotors;
+        updateSelectedComponentsDisplay();
+      });
+    }
+
+  } catch (error) {
+    console.error('Failed to load component selectors:', error);
+    container.innerHTML = `<p class="small muted">Error loading parts. Check console.</p>`;
+  }
 }
 
-function validatePlatform() {
+function handleComponentSelect(category, partId, library) {
+  if (!partId) {
+    currentPlatformDesign.components[category] = null;
+  } else {
+    // Find part in library
+    const categoryParts = library[category + 's'] || library[category];
+    const part = categoryParts?.find(p => p.id === partId);
+    if (part) {
+      currentPlatformDesign.components[category] = part;
+    }
+  }
+  updateSelectedComponentsDisplay();
+}
+
+function updateSelectedComponentsDisplay() {
+  const container = document.getElementById('selectedComponents');
+  if (!container) return;
+
+  const components = currentPlatformDesign.components;
+  const selected = [];
+
+  if (components.airframe) selected.push(`<strong>Airframe:</strong> ${components.airframe.name}`);
+  if (components.battery) selected.push(`<strong>Battery:</strong> ${components.battery.name} (${components.battery.capacity_wh}Wh)`);
+  if (components.escs) selected.push(`<strong>ESC:</strong> ${components.escs.name}`);
+  if (components.flight_controller) selected.push(`<strong>FC:</strong> ${components.flight_controller.name}`);
+  if (components.motors?.length > 0) {
+    selected.push(`<strong>Motors:</strong> ${components.motors.length}x ${components.motors[0].name}`);
+  }
+
+  if (selected.length === 0) {
+    container.innerHTML = '<p class="small muted">No components selected</p>';
+  } else {
+    container.innerHTML = `
+      <div style="padding: 12px; background: var(--panel); border-radius: 8px; border: 1px solid var(--border);">
+        <p class="small"><strong>Selected Components:</strong></p>
+        <ul class="bullet-list small">
+          ${selected.map(item => `<li>${item}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+  }
+}
+
+function validateCurrentPlatform() {
   const resultsDiv = document.getElementById('validationResults');
-  if (!resultsDiv) return;
+  if (!resultsDiv || !currentPlatformDesign) return;
 
-  resultsDiv.innerHTML = `
-    <p class="small muted">Platform validation will check:</p>
-    <ul class="bullet-list">
-      <li>Thrust-to-weight ratio</li>
-      <li>Flight time estimates</li>
-      <li>Environmental derating (altitude, temperature)</li>
-      <li>Component compatibility</li>
-    </ul>
-    <p class="small">Build platform designer UI to enable validation.</p>
+  // Validate the design
+  const validation = PlatformDesigner.validateDesign(currentPlatformDesign);
+  const metrics = validation.metrics;
+  const env = metrics.environment || {};
+
+  // Build results display
+  let html = '<div class="validation-panel">';
+
+  // Metrics summary
+  html += `
+    <div style="margin-bottom: 16px;">
+      <p class="small"><strong>Platform Metrics</strong></p>
+      <div class="form-grid" style="margin-top: 8px;">
+        <div>
+          <p class="small muted">All-Up Weight</p>
+          <strong>${metrics.auw_kg?.toFixed(2) || 0} kg</strong>
+        </div>
+        <div>
+          <p class="small muted">Total Thrust</p>
+          <strong>${metrics.total_thrust_g || 0} g</strong>
+        </div>
+        <div>
+          <p class="small muted">Thrust-to-Weight</p>
+          <strong>${metrics.thrust_to_weight?.toFixed(2) || 0}</strong>
+        </div>
+        <div>
+          <p class="small muted">Flight Time (nominal)</p>
+          <strong>${metrics.nominal_flight_time_min?.toFixed(1) || 0} min</strong>
+        </div>
+      </div>
+    </div>
   `;
+
+  // Environmental impact
+  if (env.altitude_m > 0 || env.temperature_c !== 20) {
+    html += `
+      <div style="margin-bottom: 16px; padding: 12px; background: var(--card); border-radius: 8px;">
+        <p class="small"><strong>Environmental Impact</strong></p>
+        <ul class="bullet-list small">
+          <li>Altitude: ${env.altitude_m}m → Thrust reduced by ${env.thrust_reduction_pct?.toFixed(1)}%</li>
+          <li>Temperature: ${env.temperature_c}°C → Battery capacity reduced by ${env.battery_capacity_reduction_pct?.toFixed(1)}%</li>
+          <li><strong>Adjusted T/W: ${env.adjusted_thrust_to_weight?.toFixed(2)}</strong></li>
+          <li><strong>Adjusted Flight Time: ${env.adjusted_flight_time_min?.toFixed(1)} min</strong></li>
+        </ul>
+      </div>
+    `;
+  }
+
+  // Errors
+  if (validation.errors.length > 0) {
+    html += `
+      <div style="margin-bottom: 16px; padding: 12px; background: #ff4444; color: white; border-radius: 8px;">
+        <p class="small"><strong>⚠️ Errors</strong></p>
+        <ul class="bullet-list small">
+          ${validation.errors.map(err => `<li>${err}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
+  // Warnings
+  if (validation.warnings.length > 0) {
+    html += `
+      <div style="margin-bottom: 16px; padding: 12px; background: #ffaa00; color: #000; border-radius: 8px;">
+        <p class="small"><strong>⚠️ Warnings</strong></p>
+        <ul class="bullet-list small">
+          ${validation.warnings.map(warn => `<li>${warn}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
+  // Recommendations
+  if (validation.recommendations.length > 0) {
+    html += `
+      <div style="padding: 12px; background: var(--panel); border-radius: 8px; border: 1px solid var(--border);">
+        <p class="small"><strong>💡 Recommendations</strong></p>
+        <ul class="bullet-list small">
+          ${validation.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
+  html += '</div>';
+  resultsDiv.innerHTML = html;
 }
 
-function savePlatform() {
-  alert('Platform save functionality will be implemented');
+function saveCurrentPlatform() {
+  if (!currentPlatformDesign) return;
+
+  // Ensure platform has a name
+  if (!currentPlatformDesign.name || currentPlatformDesign.name === 'Untitled Platform') {
+    const name = prompt('Enter a name for this platform:');
+    if (!name) return;
+    currentPlatformDesign.name = name;
+  }
+
+  // Save the design
+  PlatformDesigner.saveDesign(currentPlatformDesign);
+
+  alert(`Platform "${currentPlatformDesign.name}" saved successfully!`);
+
+  // Reload saved platforms list
+  loadSavedPlatforms();
+}
+
+function loadSavedPlatforms() {
+  // This will be displayed in a future enhancement
+  console.log('Saved platforms:', PlatformDesigner.loadDesigns());
 }
 
 // ============================================================================
@@ -435,6 +699,7 @@ function savePlatform() {
 // ============================================================================
 
 let missionPlannerInitialized = false;
+let currentMissionPlan = null;
 
 function initMissionPlanner() {
   if (missionPlannerInitialized) return;
@@ -442,43 +707,271 @@ function initMissionPlanner() {
 
   console.log('Initializing Mission Planner...');
 
+  // Initialize with empty plan
+  currentMissionPlan = MissionPlanner.createEmptyPlan();
+
+  // Wire up mission details inputs
+  const missionName = document.getElementById('missionName');
+  if (missionName) {
+    missionName.addEventListener('change', (e) => {
+      currentMissionPlan.name = e.target.value;
+    });
+  }
+
+  const missionDuration = document.getElementById('missionDuration');
+  if (missionDuration) {
+    missionDuration.addEventListener('change', (e) => {
+      currentMissionPlan.duration_hours = parseInt(e.target.value);
+    });
+  }
+
+  const missionTerrain = document.getElementById('missionTerrain');
+  if (missionTerrain) {
+    missionTerrain.addEventListener('change', (e) => {
+      currentMissionPlan.terrain = e.target.value;
+    });
+  }
+
+  const teamSize = document.getElementById('teamSize');
+  if (teamSize) {
+    teamSize.addEventListener('change', (e) => {
+      const size = parseInt(e.target.value);
+      currentMissionPlan.team.size = size;
+      // Adjust roles array to match team size
+      currentMissionPlan.team.roles = MissionPlanner.OPERATOR_ROLES.slice(0, size);
+    });
+  }
+
+  // Wire up buttons
   const addPhaseBtn = document.getElementById('addPhase');
   if (addPhaseBtn) {
-    addPhaseBtn.addEventListener('click', addPhase);
+    addPhaseBtn.addEventListener('click', addMissionPhase);
   }
 
   const calculateBtn = document.getElementById('calculateLogistics');
   if (calculateBtn) {
-    calculateBtn.addEventListener('click', calculateLogistics);
+    calculateBtn.addEventListener('click', calculateMissionLogistics);
   }
 
   const downloadBtn = document.getElementById('downloadPackingLists');
   if (downloadBtn) {
-    downloadBtn.addEventListener('click', downloadPackingLists);
+    downloadBtn.addEventListener('click', downloadAllPackingLists);
   }
+
+  // Initial phase editor render
+  renderPhaseEditor();
 }
 
-function addPhase() {
-  alert('Add phase functionality will be implemented');
+function renderPhaseEditor() {
+  const container = document.getElementById('phasesEditor');
+  if (!container || !currentMissionPlan) return;
+
+  if (currentMissionPlan.phases.length === 0) {
+    container.innerHTML = '<p class="small muted">No phases added. Click "+ Add Phase" to start.</p>';
+    return;
+  }
+
+  container.innerHTML = currentMissionPlan.phases.map((phase, idx) => `
+    <div class="phase-card" style="margin-bottom: 12px; padding: 12px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px;">
+      <div style="display: flex; justify-content: space-between; align-items: start;">
+        <div style="flex: 1;">
+          <strong>${phase.name}</strong>
+          <p class="small muted">${phase.type} • ${phase.duration_hours}h • ${phase.activity_level} activity</p>
+        </div>
+        <button class="btn subtle" onclick="removeMissionPhase('${phase.id}')">Remove</button>
+      </div>
+    </div>
+  `).join('');
 }
 
-function calculateLogistics() {
+function addMissionPhase() {
+  if (!currentMissionPlan) return;
+
+  const phaseName = prompt('Phase name (e.g., "Infiltration", "On-Station Ops"):');
+  if (!phaseName) return;
+
+  const duration = prompt('Duration in hours:', '2');
+  if (!duration) return;
+
+  const phase = {
+    name: phaseName,
+    type: 'ON_STATION',
+    duration_hours: parseFloat(duration),
+    activity_level: 'medium',
+    platforms_active: [],
+    notes: ''
+  };
+
+  MissionPlanner.addPhase(currentMissionPlan, phase);
+  renderPhaseEditor();
+}
+
+function removeMissionPhase(phaseId) {
+  if (!currentMissionPlan) return;
+  MissionPlanner.removePhase(currentMissionPlan, phaseId);
+  renderPhaseEditor();
+}
+
+function calculateMissionLogistics() {
   const resultsDiv = document.getElementById('logisticsResults');
-  if (!resultsDiv) return;
+  if (!resultsDiv || !currentMissionPlan) return;
 
-  resultsDiv.innerHTML = `
-    <p class="small muted">Logistics calculation will compute:</p>
-    <ul class="bullet-list">
-      <li>Battery swap schedules</li>
-      <li>Per-operator packing lists</li>
-      <li>Weight distribution across team</li>
-      <li>Mission feasibility checks</li>
-    </ul>
-  `;
+  // Get all saved platform designs
+  const platformDesigns = PlatformDesigner.loadDesigns();
+
+  if (platformDesigns.length === 0) {
+    resultsDiv.innerHTML = `
+      <div style="padding: 12px; background: #ffaa00; color: #000; border-radius: 8px;">
+        <p class="small"><strong>⚠️ No Platform Designs Found</strong></p>
+        <p class="small">Create and save platform designs in the Platform Designer first.</p>
+        <a class="btn subtle" href="/#/platform" style="margin-top: 8px;">Go to Platform Designer →</a>
+      </div>
+    `;
+    return;
+  }
+
+  // For now, assume we're using all saved platforms
+  // In a real app, users would select which platforms to use
+  currentMissionPlan.platforms = platformDesigns.map(d => d.id);
+
+  // Assign platforms to phases (simplified - use first platform for all phases)
+  currentMissionPlan.phases.forEach(phase => {
+    phase.platforms_active = [platformDesigns[0].id];
+  });
+
+  // Calculate logistics
+  MissionPlanner.calculateMissionLogistics(currentMissionPlan, platformDesigns);
+
+  // Display results
+  displayLogisticsResults(resultsDiv);
 }
 
-function downloadPackingLists() {
-  alert('Packing list download will be implemented');
+function displayLogisticsResults(resultsDiv) {
+  const sustainment = currentMissionPlan.sustainment;
+  const packingLists = currentMissionPlan.packing_lists;
+
+  if (!sustainment) {
+    resultsDiv.innerHTML = '<p class="small muted">Run calculation to see results.</p>';
+    return;
+  }
+
+  let html = '<div class="logistics-panel">';
+
+  // Sustainment summary
+  html += `
+    <div style="margin-bottom: 16px; padding: 12px; background: var(--card); border-radius: 8px;">
+      <p class="small"><strong>Battery Requirements</strong></p>
+      <div class="form-grid" style="margin-top: 8px;">
+        <div>
+          <p class="small muted">Total Batteries</p>
+          <strong>${sustainment.total_batteries}</strong>
+        </div>
+        <div>
+          <p class="small muted">Total Weight</p>
+          <strong>${sustainment.weight_kg.toFixed(1)} kg</strong>
+        </div>
+        <div>
+          <p class="small muted">Battery Swaps</p>
+          <strong>${sustainment.battery_swaps.length}</strong>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Battery requirements by platform
+  html += `
+    <div style="margin-bottom: 16px;">
+      <p class="small"><strong>By Platform:</strong></p>
+      <ul class="bullet-list small">
+  `;
+
+  Object.values(sustainment.batteries_by_platform).forEach(pb => {
+    html += `
+      <li><strong>${pb.platform_name}:</strong> ${pb.batteries_needed} batteries (${pb.weight_kg.toFixed(1)} kg) • Flight time: ${(pb.flight_time_hours * 60).toFixed(0)} min</li>
+    `;
+  });
+
+  html += '</ul></div>';
+
+  // Packing lists summary
+  if (packingLists && packingLists.length > 0) {
+    html += `
+      <div style="margin-bottom: 16px; padding: 12px; background: var(--panel); border-radius: 8px; border: 1px solid var(--border);">
+        <p class="small"><strong>Operator Loads</strong></p>
+        <table style="width: 100%; margin-top: 8px; font-size: 0.9em;">
+          <thead>
+            <tr style="text-align: left; border-bottom: 1px solid var(--border);">
+              <th style="padding: 4px;">Role</th>
+              <th style="padding: 4px;">Items</th>
+              <th style="padding: 4px;">Weight</th>
+              <th style="padding: 4px;">Limit</th>
+              <th style="padding: 4px;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    packingLists.forEach(list => {
+      const status = list.critically_overweight ? '🔴 Critical' :
+                    list.overweight ? '⚠️ Warning' : '✅ OK';
+      const color = list.critically_overweight ? '#ff4444' :
+                   list.overweight ? '#ffaa00' : 'inherit';
+
+      html += `
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 4px;">${list.role}</td>
+          <td style="padding: 4px;">${list.items.length}</td>
+          <td style="padding: 4px;">${list.total_weight_kg.toFixed(1)} kg</td>
+          <td style="padding: 4px;">${list.weight_limit_kg.toFixed(1)} kg</td>
+          <td style="padding: 4px; color: ${color};">${status}</td>
+        </tr>
+      `;
+    });
+
+    html += '</tbody></table></div>';
+  }
+
+  // Feasibility
+  if (sustainment.feasibility) {
+    if (sustainment.feasibility.errors.length > 0) {
+      html += `
+        <div style="margin-bottom: 16px; padding: 12px; background: #ff4444; color: white; border-radius: 8px;">
+          <p class="small"><strong>⚠️ Errors</strong></p>
+          <ul class="bullet-list small">
+            ${sustainment.feasibility.errors.map(err => `<li>${err}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    if (sustainment.feasibility.warnings.length > 0) {
+      html += `
+        <div style="padding: 12px; background: #ffaa00; color: #000; border-radius: 8px;">
+          <p class="small"><strong>⚠️ Warnings</strong></p>
+          <ul class="bullet-list small">
+            ${sustainment.feasibility.warnings.map(warn => `<li>${warn}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+    }
+  }
+
+  html += '</div>';
+  resultsDiv.innerHTML = html;
+}
+
+function downloadAllPackingLists() {
+  if (!currentMissionPlan || !currentMissionPlan.packing_lists || currentMissionPlan.packing_lists.length === 0) {
+    alert('Calculate logistics first to generate packing lists.');
+    return;
+  }
+
+  // Download each operator's packing list
+  currentMissionPlan.packing_lists.forEach(list => {
+    MissionPlanner.downloadPackingList(list);
+  });
+
+  alert(`Downloaded ${currentMissionPlan.packing_lists.length} packing lists.`);
 }
 
 // ============================================================================
@@ -486,6 +979,7 @@ function downloadPackingLists() {
 // ============================================================================
 
 let commsValidatorInitialized = false;
+let currentCommsAnalysis = null;
 
 function initCommsValidator() {
   if (commsValidatorInitialized) return;
@@ -493,44 +987,290 @@ function initCommsValidator() {
 
   console.log('Initializing Comms Validator...');
 
+  // Initialize with empty analysis
+  currentCommsAnalysis = CommsValidator.createEmptyAnalysis();
+
+  // Wire up environment controls
+  const commsTerrain = document.getElementById('commsTerrain');
+  if (commsTerrain) {
+    commsTerrain.addEventListener('change', (e) => {
+      currentCommsAnalysis.terrain = e.target.value;
+    });
+  }
+
+  const commsWeather = document.getElementById('commsWeather');
+  if (commsWeather) {
+    commsWeather.addEventListener('change', (e) => {
+      currentCommsAnalysis.weather = e.target.value;
+    });
+  }
+
+  // Wire up buttons
   const addNodeBtn = document.getElementById('addNode');
   if (addNodeBtn) {
-    addNodeBtn.addEventListener('click', addNode);
+    addNodeBtn.addEventListener('click', addCommsNode);
   }
 
   const analyzeBtn = document.getElementById('analyzeLinks');
   if (analyzeBtn) {
-    analyzeBtn.addEventListener('click', analyzeLinks);
+    analyzeBtn.addEventListener('click', analyzeCommsLinks);
   }
 
   const downloadBtn = document.getElementById('downloadCommsReport');
   if (downloadBtn) {
-    downloadBtn.addEventListener('click', downloadCommsReport);
+    downloadBtn.addEventListener('click', downloadCommsReportFn);
   }
+
+  // Initial render
+  renderNodesEditor();
 }
 
-function addNode() {
-  alert('Add node functionality will be implemented');
+function renderNodesEditor() {
+  const container = document.getElementById('nodesEditor');
+  if (!container || !currentCommsAnalysis) return;
+
+  if (currentCommsAnalysis.nodes.length === 0) {
+    container.innerHTML = '<p class="small muted">No nodes added. Click "+ Add Node" to start.</p>';
+    return;
+  }
+
+  container.innerHTML = currentCommsAnalysis.nodes.map((node, idx) => `
+    <div class="node-card" style="margin-bottom: 12px; padding: 12px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px;">
+      <div style="display: flex; justify-content: space-between; align-items: start;">
+        <div style="flex: 1;">
+          <strong>${node.name}</strong>
+          <p class="small muted">${node.type} • ${node.radio.frequency_mhz}MHz @ ${node.radio.power_output_dbm}dBm</p>
+          <p class="small muted">Lat: ${node.location.lat.toFixed(5)}, Lon: ${node.location.lon.toFixed(5)}, Height: ${node.location.height_agl_m}m AGL</p>
+        </div>
+        <button class="btn subtle" onclick="removeCommsNode('${node.id}')">Remove</button>
+      </div>
+    </div>
+  `).join('');
 }
 
-function analyzeLinks() {
+function addCommsNode() {
+  if (!currentCommsAnalysis) return;
+
+  const nodeName = prompt('Node name (e.g., "GCS", "Relay-1", "UAV-1"):');
+  if (!nodeName) return;
+
+  const lat = prompt('Latitude (decimal degrees):', '0.0');
+  if (lat === null) return;
+
+  const lon = prompt('Longitude (decimal degrees):', '0.0');
+  if (lon === null) return;
+
+  const heightAGL = prompt('Height above ground level (meters):', '2');
+  if (heightAGL === null) return;
+
+  const node = {
+    name: nodeName,
+    type: 'transceiver',
+    location: {
+      lat: parseFloat(lat),
+      lon: parseFloat(lon),
+      elevation_m: 0,
+      height_agl_m: parseFloat(heightAGL)
+    },
+    radio: {
+      frequency_mhz: 900,
+      power_output_dbm: 20,
+      tx_gain_dbi: 2,
+      rx_gain_dbi: 2,
+      sensitivity_dbm: -110,
+      tx_cable_loss_db: 1,
+      rx_cable_loss_db: 1
+    },
+    notes: ''
+  };
+
+  CommsValidator.addNode(currentCommsAnalysis, node);
+  renderNodesEditor();
+}
+
+function removeCommsNode(nodeId) {
+  if (!currentCommsAnalysis) return;
+  currentCommsAnalysis.nodes = currentCommsAnalysis.nodes.filter(n => n.id !== nodeId);
+  renderNodesEditor();
+}
+
+function analyzeCommsLinks() {
   const resultsDiv = document.getElementById('linkAnalysisResults');
-  if (!resultsDiv) return;
+  if (!resultsDiv || !currentCommsAnalysis) return;
 
-  resultsDiv.innerHTML = `
-    <p class="small muted">Link analysis will compute:</p>
-    <ul class="bullet-list">
-      <li>Free-space path loss</li>
-      <li>Link margin calculations</li>
-      <li>Line-of-sight checks</li>
-      <li>Fresnel zone clearance</li>
-      <li>Relay recommendations</li>
-    </ul>
-  `;
+  if (currentCommsAnalysis.nodes.length < 2) {
+    resultsDiv.innerHTML = `
+      <div style="padding: 12px; background: #ffaa00; color: #000; border-radius: 8px;">
+        <p class="small"><strong>⚠️ Need at least 2 nodes</strong></p>
+        <p class="small">Add at least 2 nodes to analyze links.</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Analyze all links
+  CommsValidator.analyzeLinks(currentCommsAnalysis);
+
+  // Display results
+  displayCommsResults(resultsDiv);
 }
 
-function downloadCommsReport() {
-  alert('Comms report download will be implemented');
+function displayCommsResults(resultsDiv) {
+  const analysis = currentCommsAnalysis;
+
+  if (!analysis.links || analysis.links.length === 0) {
+    resultsDiv.innerHTML = '<p class="small muted">Run analysis to see results.</p>';
+    return;
+  }
+
+  let html = '<div class="comms-results-panel">';
+
+  // Summary
+  html += `
+    <div style="margin-bottom: 16px; padding: 12px; background: var(--card); border-radius: 8px;">
+      <p class="small"><strong>Analysis Summary</strong></p>
+      <div class="form-grid" style="margin-top: 8px;">
+        <div>
+          <p class="small muted">Nodes</p>
+          <strong>${analysis.nodes.length}</strong>
+        </div>
+        <div>
+          <p class="small muted">Links Analyzed</p>
+          <strong>${analysis.links.length}</strong>
+        </div>
+        <div>
+          <p class="small muted">Coverage Gaps</p>
+          <strong>${analysis.coverage_gaps.length}</strong>
+        </div>
+        <div>
+          <p class="small muted">Relays Needed</p>
+          <strong>${analysis.relay_recommendations.length}</strong>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Links table
+  html += `
+    <div style="margin-bottom: 16px;">
+      <p class="small"><strong>Link Analysis</strong></p>
+      <table style="width: 100%; margin-top: 8px; font-size: 0.85em;">
+        <thead>
+          <tr style="text-align: left; border-bottom: 1px solid var(--border);">
+            <th style="padding: 4px;">Link</th>
+            <th style="padding: 4px;">Distance</th>
+            <th style="padding: 4px;">Margin</th>
+            <th style="padding: 4px;">Quality</th>
+            <th style="padding: 4px;">LOS</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  analysis.links.forEach(link => {
+    const qualityColor = {
+      'excellent': '#00ff00',
+      'good': '#88ff00',
+      'marginal': '#ffaa00',
+      'poor': '#ff4444',
+      'no_los': '#ff0000'
+    }[link.quality] || 'inherit';
+
+    html += `
+      <tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: 4px;">${link.from_name} → ${link.to_name}</td>
+        <td style="padding: 4px;">${link.distance_km.toFixed(2)} km</td>
+        <td style="padding: 4px;">${link.link_margin_db.toFixed(1)} dB</td>
+        <td style="padding: 4px; color: ${qualityColor};">${link.quality.toUpperCase()}</td>
+        <td style="padding: 4px;">${link.los.clear ? '✅' : '❌'}</td>
+      </tr>
+    `;
+  });
+
+  html += '</tbody></table></div>';
+
+  // Coverage gaps
+  if (analysis.coverage_gaps.length > 0) {
+    html += `
+      <div style="margin-bottom: 16px; padding: 12px; background: #ff4444; color: white; border-radius: 8px;">
+        <p class="small"><strong>⚠️ Coverage Gaps</strong></p>
+        <ul class="bullet-list small">
+          ${analysis.coverage_gaps.map(gap =>
+            `<li><strong>${gap.from} → ${gap.to}:</strong> ${gap.reason} (Margin: ${gap.link_margin_db.toFixed(1)} dB)</li>`
+          ).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
+  // Relay recommendations
+  if (analysis.relay_recommendations.length > 0) {
+    html += `
+      <div style="margin-bottom: 16px; padding: 12px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px;">
+        <p class="small"><strong>💡 Relay Recommendations</strong></p>
+        <ul class="bullet-list small">
+          ${analysis.relay_recommendations.map(rec => {
+            let detail = `<strong>${rec.description}</strong><br>`;
+            detail += `Location: ${rec.location}`;
+            if (rec.required_height_m) {
+              detail += ` (Height: ${rec.required_height_m.toFixed(1)}m)`;
+            }
+            if (rec.reason) {
+              detail += `<br>Reason: ${rec.reason}`;
+            }
+            return `<li>${detail}</li>`;
+          }).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
+  // Feasibility
+  if (analysis.feasibility) {
+    if (analysis.feasibility.errors.length > 0) {
+      html += `
+        <div style="margin-bottom: 16px; padding: 12px; background: #ff4444; color: white; border-radius: 8px;">
+          <p class="small"><strong>⚠️ Errors</strong></p>
+          <ul class="bullet-list small">
+            ${analysis.feasibility.errors.map(err => `<li>${err}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    if (analysis.feasibility.warnings.length > 0) {
+      html += `
+        <div style="padding: 12px; background: #ffaa00; color: #000; border-radius: 8px;">
+          <p class="small"><strong>⚠️ Warnings</strong></p>
+          <ul class="bullet-list small">
+            ${analysis.feasibility.warnings.map(warn => `<li>${warn}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    if (analysis.feasibility.pass) {
+      html += `
+        <div style="padding: 12px; background: #00ff00; color: #000; border-radius: 8px;">
+          <p class="small"><strong>✅ Communications Plan Feasible</strong></p>
+          <p class="small">All links have sufficient margin for reliable communications.</p>
+        </div>
+      `;
+    }
+  }
+
+  html += '</div>';
+  resultsDiv.innerHTML = html;
+}
+
+function downloadCommsReportFn() {
+  if (!currentCommsAnalysis || !currentCommsAnalysis.links || currentCommsAnalysis.links.length === 0) {
+    alert('Run link analysis first to generate a report.');
+    return;
+  }
+
+  CommsValidator.downloadReport(currentCommsAnalysis);
+  alert('Comms analysis report downloaded.');
 }
 
 // ============================================================================
