@@ -979,6 +979,7 @@ function downloadAllPackingLists() {
 // ============================================================================
 
 let commsValidatorInitialized = false;
+let currentCommsAnalysis = null;
 
 function initCommsValidator() {
   if (commsValidatorInitialized) return;
@@ -986,44 +987,290 @@ function initCommsValidator() {
 
   console.log('Initializing Comms Validator...');
 
+  // Initialize with empty analysis
+  currentCommsAnalysis = CommsValidator.createEmptyAnalysis();
+
+  // Wire up environment controls
+  const commsTerrain = document.getElementById('commsTerrain');
+  if (commsTerrain) {
+    commsTerrain.addEventListener('change', (e) => {
+      currentCommsAnalysis.terrain = e.target.value;
+    });
+  }
+
+  const commsWeather = document.getElementById('commsWeather');
+  if (commsWeather) {
+    commsWeather.addEventListener('change', (e) => {
+      currentCommsAnalysis.weather = e.target.value;
+    });
+  }
+
+  // Wire up buttons
   const addNodeBtn = document.getElementById('addNode');
   if (addNodeBtn) {
-    addNodeBtn.addEventListener('click', addNode);
+    addNodeBtn.addEventListener('click', addCommsNode);
   }
 
   const analyzeBtn = document.getElementById('analyzeLinks');
   if (analyzeBtn) {
-    analyzeBtn.addEventListener('click', analyzeLinks);
+    analyzeBtn.addEventListener('click', analyzeCommsLinks);
   }
 
   const downloadBtn = document.getElementById('downloadCommsReport');
   if (downloadBtn) {
-    downloadBtn.addEventListener('click', downloadCommsReport);
+    downloadBtn.addEventListener('click', downloadCommsReportFn);
   }
+
+  // Initial render
+  renderNodesEditor();
 }
 
-function addNode() {
-  alert('Add node functionality will be implemented');
+function renderNodesEditor() {
+  const container = document.getElementById('nodesEditor');
+  if (!container || !currentCommsAnalysis) return;
+
+  if (currentCommsAnalysis.nodes.length === 0) {
+    container.innerHTML = '<p class="small muted">No nodes added. Click "+ Add Node" to start.</p>';
+    return;
+  }
+
+  container.innerHTML = currentCommsAnalysis.nodes.map((node, idx) => `
+    <div class="node-card" style="margin-bottom: 12px; padding: 12px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px;">
+      <div style="display: flex; justify-content: space-between; align-items: start;">
+        <div style="flex: 1;">
+          <strong>${node.name}</strong>
+          <p class="small muted">${node.type} • ${node.radio.frequency_mhz}MHz @ ${node.radio.power_output_dbm}dBm</p>
+          <p class="small muted">Lat: ${node.location.lat.toFixed(5)}, Lon: ${node.location.lon.toFixed(5)}, Height: ${node.location.height_agl_m}m AGL</p>
+        </div>
+        <button class="btn subtle" onclick="removeCommsNode('${node.id}')">Remove</button>
+      </div>
+    </div>
+  `).join('');
 }
 
-function analyzeLinks() {
+function addCommsNode() {
+  if (!currentCommsAnalysis) return;
+
+  const nodeName = prompt('Node name (e.g., "GCS", "Relay-1", "UAV-1"):');
+  if (!nodeName) return;
+
+  const lat = prompt('Latitude (decimal degrees):', '0.0');
+  if (lat === null) return;
+
+  const lon = prompt('Longitude (decimal degrees):', '0.0');
+  if (lon === null) return;
+
+  const heightAGL = prompt('Height above ground level (meters):', '2');
+  if (heightAGL === null) return;
+
+  const node = {
+    name: nodeName,
+    type: 'transceiver',
+    location: {
+      lat: parseFloat(lat),
+      lon: parseFloat(lon),
+      elevation_m: 0,
+      height_agl_m: parseFloat(heightAGL)
+    },
+    radio: {
+      frequency_mhz: 900,
+      power_output_dbm: 20,
+      tx_gain_dbi: 2,
+      rx_gain_dbi: 2,
+      sensitivity_dbm: -110,
+      tx_cable_loss_db: 1,
+      rx_cable_loss_db: 1
+    },
+    notes: ''
+  };
+
+  CommsValidator.addNode(currentCommsAnalysis, node);
+  renderNodesEditor();
+}
+
+function removeCommsNode(nodeId) {
+  if (!currentCommsAnalysis) return;
+  currentCommsAnalysis.nodes = currentCommsAnalysis.nodes.filter(n => n.id !== nodeId);
+  renderNodesEditor();
+}
+
+function analyzeCommsLinks() {
   const resultsDiv = document.getElementById('linkAnalysisResults');
-  if (!resultsDiv) return;
+  if (!resultsDiv || !currentCommsAnalysis) return;
 
-  resultsDiv.innerHTML = `
-    <p class="small muted">Link analysis will compute:</p>
-    <ul class="bullet-list">
-      <li>Free-space path loss</li>
-      <li>Link margin calculations</li>
-      <li>Line-of-sight checks</li>
-      <li>Fresnel zone clearance</li>
-      <li>Relay recommendations</li>
-    </ul>
-  `;
+  if (currentCommsAnalysis.nodes.length < 2) {
+    resultsDiv.innerHTML = `
+      <div style="padding: 12px; background: #ffaa00; color: #000; border-radius: 8px;">
+        <p class="small"><strong>⚠️ Need at least 2 nodes</strong></p>
+        <p class="small">Add at least 2 nodes to analyze links.</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Analyze all links
+  CommsValidator.analyzeLinks(currentCommsAnalysis);
+
+  // Display results
+  displayCommsResults(resultsDiv);
 }
 
-function downloadCommsReport() {
-  alert('Comms report download will be implemented');
+function displayCommsResults(resultsDiv) {
+  const analysis = currentCommsAnalysis;
+
+  if (!analysis.links || analysis.links.length === 0) {
+    resultsDiv.innerHTML = '<p class="small muted">Run analysis to see results.</p>';
+    return;
+  }
+
+  let html = '<div class="comms-results-panel">';
+
+  // Summary
+  html += `
+    <div style="margin-bottom: 16px; padding: 12px; background: var(--card); border-radius: 8px;">
+      <p class="small"><strong>Analysis Summary</strong></p>
+      <div class="form-grid" style="margin-top: 8px;">
+        <div>
+          <p class="small muted">Nodes</p>
+          <strong>${analysis.nodes.length}</strong>
+        </div>
+        <div>
+          <p class="small muted">Links Analyzed</p>
+          <strong>${analysis.links.length}</strong>
+        </div>
+        <div>
+          <p class="small muted">Coverage Gaps</p>
+          <strong>${analysis.coverage_gaps.length}</strong>
+        </div>
+        <div>
+          <p class="small muted">Relays Needed</p>
+          <strong>${analysis.relay_recommendations.length}</strong>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Links table
+  html += `
+    <div style="margin-bottom: 16px;">
+      <p class="small"><strong>Link Analysis</strong></p>
+      <table style="width: 100%; margin-top: 8px; font-size: 0.85em;">
+        <thead>
+          <tr style="text-align: left; border-bottom: 1px solid var(--border);">
+            <th style="padding: 4px;">Link</th>
+            <th style="padding: 4px;">Distance</th>
+            <th style="padding: 4px;">Margin</th>
+            <th style="padding: 4px;">Quality</th>
+            <th style="padding: 4px;">LOS</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  analysis.links.forEach(link => {
+    const qualityColor = {
+      'excellent': '#00ff00',
+      'good': '#88ff00',
+      'marginal': '#ffaa00',
+      'poor': '#ff4444',
+      'no_los': '#ff0000'
+    }[link.quality] || 'inherit';
+
+    html += `
+      <tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: 4px;">${link.from_name} → ${link.to_name}</td>
+        <td style="padding: 4px;">${link.distance_km.toFixed(2)} km</td>
+        <td style="padding: 4px;">${link.link_margin_db.toFixed(1)} dB</td>
+        <td style="padding: 4px; color: ${qualityColor};">${link.quality.toUpperCase()}</td>
+        <td style="padding: 4px;">${link.los.clear ? '✅' : '❌'}</td>
+      </tr>
+    `;
+  });
+
+  html += '</tbody></table></div>';
+
+  // Coverage gaps
+  if (analysis.coverage_gaps.length > 0) {
+    html += `
+      <div style="margin-bottom: 16px; padding: 12px; background: #ff4444; color: white; border-radius: 8px;">
+        <p class="small"><strong>⚠️ Coverage Gaps</strong></p>
+        <ul class="bullet-list small">
+          ${analysis.coverage_gaps.map(gap =>
+            `<li><strong>${gap.from} → ${gap.to}:</strong> ${gap.reason} (Margin: ${gap.link_margin_db.toFixed(1)} dB)</li>`
+          ).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
+  // Relay recommendations
+  if (analysis.relay_recommendations.length > 0) {
+    html += `
+      <div style="margin-bottom: 16px; padding: 12px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px;">
+        <p class="small"><strong>💡 Relay Recommendations</strong></p>
+        <ul class="bullet-list small">
+          ${analysis.relay_recommendations.map(rec => {
+            let detail = `<strong>${rec.description}</strong><br>`;
+            detail += `Location: ${rec.location}`;
+            if (rec.required_height_m) {
+              detail += ` (Height: ${rec.required_height_m.toFixed(1)}m)`;
+            }
+            if (rec.reason) {
+              detail += `<br>Reason: ${rec.reason}`;
+            }
+            return `<li>${detail}</li>`;
+          }).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
+  // Feasibility
+  if (analysis.feasibility) {
+    if (analysis.feasibility.errors.length > 0) {
+      html += `
+        <div style="margin-bottom: 16px; padding: 12px; background: #ff4444; color: white; border-radius: 8px;">
+          <p class="small"><strong>⚠️ Errors</strong></p>
+          <ul class="bullet-list small">
+            ${analysis.feasibility.errors.map(err => `<li>${err}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    if (analysis.feasibility.warnings.length > 0) {
+      html += `
+        <div style="padding: 12px; background: #ffaa00; color: #000; border-radius: 8px;">
+          <p class="small"><strong>⚠️ Warnings</strong></p>
+          <ul class="bullet-list small">
+            ${analysis.feasibility.warnings.map(warn => `<li>${warn}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    if (analysis.feasibility.pass) {
+      html += `
+        <div style="padding: 12px; background: #00ff00; color: #000; border-radius: 8px;">
+          <p class="small"><strong>✅ Communications Plan Feasible</strong></p>
+          <p class="small">All links have sufficient margin for reliable communications.</p>
+        </div>
+      `;
+    }
+  }
+
+  html += '</div>';
+  resultsDiv.innerHTML = html;
+}
+
+function downloadCommsReportFn() {
+  if (!currentCommsAnalysis || !currentCommsAnalysis.links || currentCommsAnalysis.links.length === 0) {
+    alert('Run link analysis first to generate a report.');
+    return;
+  }
+
+  CommsValidator.downloadReport(currentCommsAnalysis);
+  alert('Comms analysis report downloaded.');
 }
 
 // ============================================================================
