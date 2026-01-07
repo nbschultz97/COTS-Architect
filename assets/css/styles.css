@@ -1197,3 +1197,140 @@ h1, h2, h3, h4 {
   .project-actions .action-row { flex-direction: column; align-items: stretch; }
   .workflow-dashboard { grid-template-columns: 1fr; }
 }
+
+/* ============================================================================
+   PLAYGROUND ADDITIONS
+   ============================================================================ */
+
+/* Quick Start Steps */
+.quick-start-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.qs-step {
+  padding: 20px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.qs-step:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  border-color: var(--accent);
+}
+
+.qs-step strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--accent);
+  font-size: 1.1em;
+}
+
+.qs-step .btn {
+  margin-top: 12px;
+  width: 100%;
+  justify-content: center;
+}
+
+/* Tool Panel */
+.tool-panel {
+  display: grid;
+  gap: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Parts Grid */
+.parts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+  min-height: 200px;
+}
+
+.part-card {
+  padding: 16px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: transform 120ms ease, border-color 120ms ease;
+  cursor: pointer;
+}
+
+.part-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.part-card strong {
+  display: block;
+  font-size: 1.05em;
+  margin-bottom: 4px;
+  color: var(--text);
+}
+
+.part-card .small {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.part-specs {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.part-specs span {
+  padding: 4px 10px;
+  background: var(--bg);
+  border-radius: 6px;
+  font-size: 0.85em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* Section Header for Module Pages */
+.section-header {
+  margin-bottom: 32px;
+  max-width: 800px;
+}
+
+.section-header .eyebrow {
+  text-transform: uppercase;
+  font-size: 0.85em;
+  letter-spacing: 1px;
+  color: var(--accent);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.section-header h2 {
+  font-size: 2.5em;
+  margin: 0 0 12px;
+  line-height: 1.2;
+}
+
+.section-header .lead {
+  font-size: 1.15em;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .quick-start-steps {
+    grid-template-columns: 1fr;
+  }
+  
+  .parts-grid {
+    grid-template-columns: 1fr;
+  }
+}
