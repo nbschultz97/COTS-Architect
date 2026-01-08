@@ -3,11 +3,11 @@
   "projectId": "mission-partner-sustainment",
   "meta": {
     "name": "Partner-force sustainment w/ 3D-printed UAS",
-    "description": "SOCPAC-style sustainment lane using partner UAS kits and mesh backhaul.",
+    "description": "Partner sustainment lane using partner UAS kits and mesh backhaul.",
     "durationHours": 96,
     "origin_tool": "hub",
     "scenario": "Partner sustainment lane",
-    "inventoryReference": "SOCPAC-PARTNER-3DP",
+    "inventoryReference": "DEMO-PARTNER-3DP",
     "missionType": "sustainment",
     "team": { "size": 8, "roles": ["Team lead", "Partner liaison", "Mesh lead", "UAS maintainer", "Payload tech", "Medic", "RTO", "Sustainment lead"] }
   },

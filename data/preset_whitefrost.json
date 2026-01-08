@@ -2,12 +2,12 @@
   "schemaVersion": "2.0.0",
   "projectId": "mission-whitefrost",
   "meta": {
-    "name": "WHITEFROST ridge recon mesh",
-    "description": "Cold-weather ridge recon mesh with neutral WHITEFROST payloads and redundant relays.",
+    "name": "Cold-weather ridge recon mesh",
+    "description": "Cold-weather ridge recon mesh with generic payloads and redundant relays.",
     "durationHours": 72,
     "origin_tool": "hub",
     "scenario": "Snowy ridgeline demo",
-    "inventoryReference": "WHITEFROST-KIT-01",
+    "inventoryReference": "DEMO-COLDWX-KIT-01",
     "missionType": "mesh_recon",
     "team": { "size": 6, "roles": ["Team lead", "Mesh lead", "UAS operator", "Relay tech", "EW watch", "Partner liaison"] }
   },
@@ -22,7 +22,7 @@
       "elevationM": 2100,
       "terrain": "ridge",
       "origin_tool": "hub",
-      "notes": "WHITEFROST demo alignment"
+      "notes": "Cold weather demo configuration"
     }
   ],
   "constraints": [

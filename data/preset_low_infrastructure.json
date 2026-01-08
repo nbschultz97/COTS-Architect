@@ -2,12 +2,12 @@
   "schemaVersion": "2.0.0",
   "projectId": "mission-low-infra",
   "meta": {
-    "name": "Mongolia low-infrastructure UxS + node mesh",
+    "name": "Low-infrastructure UxS + node mesh",
     "description": "Sparse infrastructure mesh across open terrain and high-altitude routes.",
     "durationHours": 120,
     "origin_tool": "hub",
     "scenario": "Low infrastructure range",
-    "inventoryReference": "MONGOLIA-MESH-LITE",
+    "inventoryReference": "DEMO-MESH-LITE",
     "missionType": "low_infrastructure",
     "team": { "size": 7, "roles": ["Team lead", "Mesh lead", "UxS pilot", "Node tech", "Power lead", "Navigator", "Safety"] }
   },
