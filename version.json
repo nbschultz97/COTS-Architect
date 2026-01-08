@@ -54,28 +54,32 @@
     "targetRelease": "2026-Q3"
   },
   "webPlayground": {
-    "version": "0.5.0-alpha.1",
+    "version": "0.4.0-alpha.1",
     "stage": "alpha",
-    "released": "2026-01-07",
+    "released": "2026-01-08",
     "description": "Interactive web demo mirroring offline tool functionality",
     "url": "https://architect.ceradonsystems.com",
-    "purpose": "Marketing and demonstration",
-    "syncedWith": "offline:0.3.0-alpha.2",
+    "purpose": "Marketing and demonstration - ALWAYS mirrors offline version",
+    "syncedWith": "offline:0.4.0-alpha.1",
     "features": {
       "allModules": "functional",
       "sampleData": "included",
-      "interactiveDemo": "complete"
+      "interactiveDemo": "complete",
+      "dataPropagation": "enabled",
+      "doctrinalReporting": "enabled",
+      "uiEnhancements": "toast notifications, icons, visual feedback"
     },
     "nextMilestone": {
-      "version": "1.0.0-beta.1",
-      "targetDate": "2026-02-15",
+      "version": "0.5.0-alpha.1",
+      "targetDate": "2026-01-15",
       "goals": [
-        "Polish UI/UX",
-        "Add interactive tutorials",
+        "Mission Cards full implementation (icons + PDF)",
+        "Advanced visual feedback system",
         "Performance optimization",
-        "Mobile responsiveness"
+        "Mobile responsiveness testing"
       ]
-    }
+    },
+    "deploymentPolicy": "MIRROR-FIRST: Web playground MUST stay in sync with offline version at all times"
   },
   "schemas": {
     "missionProject": {

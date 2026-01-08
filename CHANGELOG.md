@@ -17,7 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.4.0-alpha.1] - 2026-01-08
 
-### Offline Tool
+### Offline Tool + Web Playground (SYNCED)
+
+**DEPLOYMENT POLICY**: Web playground now ALWAYS mirrors offline version.
 
 #### Added
 - **Automatic Data Propagation System (CRITICAL FEATURE)**
@@ -41,6 +43,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - JSON export with phase names, durations, and platform assignments
   - TODO markers for icon library, QR codes, and print-optimized PDF layout
 
+- **UI Feedback System (NEW)**
+  - Comprehensive toast notification system with 5 types (success, error, warning, info, sync)
+  - Auto-dismiss toasts with manual close option
+  - Loading spinner overlay for async operations
+  - Success checkmark animations
+  - Pulse animations for badges
+  - Confirm dialog system (replaces native alerts)
+  - All UI feedback accessible via `UIFeedback` global object
+
+- **Visual Feedback for Data Propagation**
+  - Toast notifications when platform changes trigger mission updates
+  - Animated sync icon (🔄) for propagation events
+  - Warning toasts when platforms removed from missions
+  - Success toasts for all doctrinal report exports
+
 #### Changed
 - **Platform Designer** (v1.0.0 → v1.1.0)
   - Now emits events when designs are saved or deleted
@@ -52,8 +69,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Console warnings when platforms are removed from missions
 
 - **Export Module** (v0.5.0-alpha → v1.0.0-beta)
-  - Added three doctrinal report export buttons to UI
+  - Added three doctrinal report export buttons with icons (📍 📊 🚑)
+  - Success toast notifications for all exports
+  - Error handling with user-friendly toast messages
   - Upgraded from alpha to beta status with comprehensive reporting
+
+- **UI Enhancements**
+  - Report buttons now have emoji icons for better visual identification
+  - CSS animations for toasts, spinners, and success checkmarks (~280 lines)
+  - Responsive toast container (top-right on desktop, full-width on mobile)
+  - Accessible ARIA labels for all notifications
 
 #### Technical Improvements
 - Event-driven architecture eliminates manual refresh requirements
@@ -65,6 +90,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated version.json to reflect new features and version bumps
 - Added "Digital Construction Foreman" subtitle to description
 - Documented data propagation system in module notes
+- **CRITICAL**: Added "MIRROR-FIRST" deployment policy to version.json
+- WebPlayground version synced to offline (both v0.4.0-alpha.1)
+
+#### Files Added
+- `assets/js/ui_feedback.js` - Toast notification and UI feedback system (+240 lines)
+- `assets/css/styles.css` - UI feedback CSS (+280 lines appended)
 
 ---
 

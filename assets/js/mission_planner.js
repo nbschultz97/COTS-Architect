@@ -655,6 +655,14 @@ const MissionPlanner = (() => {
             savePlan(plan);
 
             console.log(`[MissionPlanner] Auto-updated plan "${plan.name}" due to platform design change`);
+
+            // Show toast notification
+            if (typeof UIFeedback !== 'undefined') {
+              UIFeedback.Toast.sync(
+                `Mission "${plan.name}" updated — Recalculated batteries and packing lists`,
+                5000
+              );
+            }
           }
         }
       });
@@ -686,6 +694,14 @@ const MissionPlanner = (() => {
 
           savePlan(plan);
           console.log(`[MissionPlanner] Removed deleted platform from plan "${plan.name}"`);
+
+          // Show toast notification
+          if (typeof UIFeedback !== 'undefined') {
+            UIFeedback.Toast.warning(
+              `Platform removed from mission "${plan.name}" — Logistics updated`,
+              5000
+            );
+          }
         }
       });
     });

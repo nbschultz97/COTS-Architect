@@ -371,9 +371,9 @@
           <h3>Doctrinal Reporting</h3>
           <p class="small muted">Generate standard military reports derived from mission data. Pre-filled with platform, location, and team information for rapid tactical reporting.</p>
           <div class="action-row">
-            <button class="btn primary" id="exportSpotReport">Export Spot Report</button>
-            <button class="btn ghost" id="exportSALUTEReport">Export SALUTE Report</button>
-            <button class="btn subtle" id="export16LineReport">Export 16-Line Report</button>
+            <button class="btn primary btn-icon" id="exportSpotReport">📍 Export Spot Report</button>
+            <button class="btn ghost btn-icon" id="exportSALUTEReport">📊 Export SALUTE Report</button>
+            <button class="btn subtle btn-icon" id="export16LineReport">🚑 Export 16-Line Report</button>
           </div>
         </div>
 
@@ -394,8 +394,9 @@
     <p class="small">Ceradon Architect — Offline-first mission planning for contested environments</p>
   </footer>
 
-  <!-- Load event bus first for cross-module communication -->
+  <!-- Load event bus and UI feedback first -->
   <script src="assets/js/mission_project_events.js"></script>
+  <script src="assets/js/ui_feedback.js"></script>
 
   <!-- Load offline modules -->
   <script src="assets/js/parts_library.js"></script>
