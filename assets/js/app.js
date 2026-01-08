@@ -1,14 +1,14 @@
 // Ceradon Architect - Offline Mission Planning Tool
-// Routes: home, library, platform, mission, comms, export
+// Routes: home, library, platform, mission, comms, map, export
 
-const APP_VERSION = 'Ceradon Architect v2.0 - Offline';
+const APP_VERSION = 'Ceradon Architect v0.3 - Offline GIS';
 const SCHEMA_VERSION = 'MissionProject v2.0.0';
 
 // ============================================================================
 // ROUTING
 // ============================================================================
 
-const routes = ['home', 'library', 'platform', 'mission', 'comms', 'export'];
+const routes = ['home', 'library', 'platform', 'mission', 'comms', 'map', 'export'];
 
 function setActiveRoute(route) {
   const target = routes.includes(route) ? route : 'home';
@@ -35,6 +35,9 @@ function setActiveRoute(route) {
       break;
     case 'comms':
       initCommsValidator();
+      break;
+    case 'map':
+      initMapViewer();
       break;
     case 'export':
       initExport();
@@ -1825,6 +1828,309 @@ function export16LineReport() {
       } else {
         alert('Failed to export 16-Line Report. Ensure mission project has required data.');
       }
+    }
+  }
+}
+
+// ============================================================================
+// MAP VIEWER
+// ============================================================================
+
+let mapViewerInstance = null;
+let currentMapLocation = null;
+
+function initMapViewer() {
+  console.log('[MapViewer] Initializing map viewer...');
+
+  // Initialize map only once
+  if (!mapViewerInstance) {
+    try {
+      mapViewerInstance = MapViewer.initMap('mapContainer', {
+        enableLocationPicker: true,
+        onLocationSelect: handleMapLocationSelect
+      });
+
+      console.log('[MapViewer] Map initialized successfully');
+    } catch (error) {
+      console.error('[MapViewer] Failed to initialize map:', error);
+      return;
+    }
+  }
+
+  // Set default mission date to today
+  const missionDateInput = document.getElementById('missionDate');
+  if (missionDateInput && !missionDateInput.value) {
+    missionDateInput.value = new Date().toISOString().split('T')[0];
+  }
+
+  // Wire up event handlers
+  const getEnvDataBtn = document.getElementById('getEnvironmentalData');
+  if (getEnvDataBtn) {
+    getEnvDataBtn.removeEventListener('click', handleGetEnvironmentalData);
+    getEnvDataBtn.addEventListener('click', handleGetEnvironmentalData);
+  }
+
+  const listTilesBtn = document.getElementById('listSRTMTiles');
+  if (listTilesBtn) {
+    listTilesBtn.removeEventListener('click', handleListSRTMTiles);
+    listTilesBtn.addEventListener('click', handleListSRTMTiles);
+  }
+
+  // Update displayed info if location already selected
+  if (currentMapLocation) {
+    displaySelectedLocation(currentMapLocation);
+  }
+}
+
+/**
+ * Handle map location selection
+ */
+function handleMapLocationSelect(location) {
+  currentMapLocation = location;
+  displaySelectedLocation(location);
+
+  console.log('[MapViewer] Location selected:', location);
+}
+
+/**
+ * Display selected location information
+ */
+function displaySelectedLocation(location) {
+  const infoDiv = document.getElementById('selectedLocationInfo');
+  if (!infoDiv) return;
+
+  infoDiv.innerHTML = `
+    <div style="padding: 12px; background: var(--card); border-radius: 8px; border-left: 4px solid #4CAF50;">
+      <p style="margin: 0 0 8px 0; font-weight: bold; color: #4CAF50;">📍 Location Selected</p>
+      <table style="width: 100%; font-size: 14px;">
+        <tr>
+          <td style="padding: 4px 8px 4px 0;"><strong>Latitude:</strong></td>
+          <td style="padding: 4px 0;">${location.lat}°</td>
+        </tr>
+        <tr>
+          <td style="padding: 4px 8px 4px 0;"><strong>Longitude:</strong></td>
+          <td style="padding: 4px 0;">${location.lon}°</td>
+        </tr>
+        <tr>
+          <td style="padding: 4px 8px 4px 0;"><strong>Elevation:</strong></td>
+          <td style="padding: 4px 0;">${location.elevation_m} m</td>
+        </tr>
+      </table>
+      <p class="small muted" style="margin: 8px 0 0 0;">
+        This data will auto-populate mission planning fields.
+      </p>
+    </div>
+  `;
+}
+
+/**
+ * Get environmental data for selected location
+ */
+async function handleGetEnvironmentalData() {
+  if (!currentMapLocation) {
+    if (typeof UIFeedback !== 'undefined') {
+      UIFeedback.Toast.warning('Please select a location on the map first', 3000);
+    }
+    return;
+  }
+
+  const missionDateInput = document.getElementById('missionDate');
+  const missionDate = missionDateInput ? new Date(missionDateInput.value) : new Date();
+
+  try {
+    // Get environmental data from almanac
+    const envData = await EnvironmentAlmanac.getEnvironmentalData(
+      currentMapLocation.lat,
+      currentMapLocation.lon,
+      missionDate
+    );
+
+    displayEnvironmentalData(envData);
+
+    if (typeof UIFeedback !== 'undefined') {
+      UIFeedback.Toast.success('Environmental data loaded successfully', 3000);
+    }
+  } catch (error) {
+    console.error('[MapViewer] Error getting environmental data:', error);
+
+    if (typeof UIFeedback !== 'undefined') {
+      UIFeedback.Toast.error('Failed to get environmental data', 3000);
+    }
+  }
+}
+
+/**
+ * Display environmental data
+ */
+function displayEnvironmentalData(data) {
+  const displayDiv = document.getElementById('environmentalDataDisplay');
+  if (!displayDiv) return;
+
+  // Build warnings HTML
+  let warningsHTML = '';
+  if (data.warnings && data.warnings.length > 0) {
+    warningsHTML = '<div style="margin-top: 12px;">';
+    data.warnings.forEach(warning => {
+      const colorMap = {
+        'critical': '#ff4444',
+        'warning': '#ffaa00',
+        'info': '#4CAF50'
+      };
+      const color = colorMap[warning.severity] || '#888';
+
+      warningsHTML += `
+        <div style="padding: 8px; margin-bottom: 8px; background: ${color}22; border-left: 4px solid ${color}; border-radius: 4px;">
+          <p class="small" style="margin: 0; color: ${color}; font-weight: bold;">
+            ${warning.severity.toUpperCase()}: ${warning.message}
+          </p>
+        </div>
+      `;
+    });
+    warningsHTML += '</div>';
+  }
+
+  displayDiv.innerHTML = `
+    <div style="margin-top: 16px; padding: 16px; background: var(--card); border-radius: 8px;">
+      <p style="margin: 0 0 12px 0; font-weight: bold;">📊 ${data.region_name}</p>
+      <p class="small muted" style="margin-bottom: 12px;">
+        Data for ${new Date(data.date).toLocaleDateString()}
+        (${data.month}/12 - ${data.coordinates.nearest_station_distance_km.toFixed(0)} km from station)
+      </p>
+
+      <table style="width: 100%; font-size: 14px; margin-bottom: 12px;">
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td colspan="2" style="padding: 8px 0; font-weight: bold;">Temperature</td>
+        </tr>
+        <tr>
+          <td style="padding: 4px 8px 4px 0;">Suggested:</td>
+          <td style="padding: 4px 0;">${data.temperature.suggested_c}°C</td>
+        </tr>
+        <tr>
+          <td style="padding: 4px 8px 4px 0;">Avg High/Low:</td>
+          <td style="padding: 4px 0;">${data.temperature.avg_high_c}°C / ${data.temperature.avg_low_c}°C</td>
+        </tr>
+        <tr>
+          <td style="padding: 4px 8px 4px 0;">Record High/Low:</td>
+          <td style="padding: 4px 0;">${data.temperature.record_high_c}°C / ${data.temperature.record_low_c}°C</td>
+        </tr>
+
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td colspan="2" style="padding: 8px 0; padding-top: 16px; font-weight: bold;">Wind</td>
+        </tr>
+        <tr>
+          <td style="padding: 4px 8px 4px 0;">Suggested:</td>
+          <td style="padding: 4px 0;">${data.wind.suggested_ms} m/s</td>
+        </tr>
+        <tr>
+          <td style="padding: 4px 8px 4px 0;">Avg / Max Gust:</td>
+          <td style="padding: 4px 0;">${data.wind.avg_speed_ms} m/s / ${data.wind.max_gust_ms} m/s</td>
+        </tr>
+        <tr>
+          <td style="padding: 4px 8px 4px 0;">Direction:</td>
+          <td style="padding: 4px 0;">${data.wind.prevailing_direction}</td>
+        </tr>
+
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td colspan="2" style="padding: 8px 0; padding-top: 16px; font-weight: bold;">Precipitation</td>
+        </tr>
+        <tr>
+          <td style="padding: 4px 8px 4px 0;">Rainfall:</td>
+          <td style="padding: 4px 0;">${data.precipitation.avg_rainfall_mm} mm (${data.precipitation.rainy_days} days)</td>
+        </tr>
+        <tr>
+          <td style="padding: 4px 8px 4px 0;">Snowfall:</td>
+          <td style="padding: 4px 0;">${data.precipitation.avg_snowfall_cm} cm</td>
+        </tr>
+
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td colspan="2" style="padding: 8px 0; padding-top: 16px; font-weight: bold;">Atmospheric</td>
+        </tr>
+        <tr>
+          <td style="padding: 4px 8px 4px 0;">Pressure:</td>
+          <td style="padding: 4px 0;">${data.atmospheric.avg_pressure_hpa} hPa</td>
+        </tr>
+        <tr>
+          <td style="padding: 4px 8px 4px 0;">Humidity:</td>
+          <td style="padding: 4px 0;">${data.atmospheric.avg_humidity_pct}%</td>
+        </tr>
+        <tr>
+          <td style="padding: 4px 8px 4px 0;">Cloud Cover:</td>
+          <td style="padding: 4px 0;">${data.atmospheric.cloud_cover_pct}%</td>
+        </tr>
+      </table>
+
+      ${warningsHTML}
+
+      <button class="btn primary" onclick="applyEnvironmentalDataToMission()" style="width: 100%; margin-top: 12px;">
+        Apply to Mission Planning
+      </button>
+    </div>
+  `;
+
+  // Store for later use
+  window.currentEnvironmentalData = data;
+}
+
+/**
+ * Apply environmental data to mission planning
+ */
+function applyEnvironmentalDataToMission() {
+  const envData = window.currentEnvironmentalData;
+  if (!envData || !currentMapLocation) return;
+
+  // Emit event for cross-module propagation
+  if (typeof MissionProjectEvents !== 'undefined') {
+    MissionProjectEvents.emit('environmental_data_selected', {
+      location: currentMapLocation,
+      environment: envData,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  // Show success toast
+  if (typeof UIFeedback !== 'undefined') {
+    UIFeedback.Toast.success(
+      `Environmental data applied: ${envData.temperature.suggested_c}°C, ${envData.wind.suggested_ms} m/s`,
+      4000
+    );
+  }
+
+  console.log('[MapViewer] Environmental data applied to mission:', envData);
+}
+
+/**
+ * List SRTM tiles
+ */
+async function handleListSRTMTiles() {
+  try {
+    const tiles = await SRTMElevation.listTiles();
+
+    const listDiv = document.getElementById('srtmTilesList');
+    if (!listDiv) return;
+
+    if (tiles.length === 0) {
+      listDiv.innerHTML = `
+        <p class="small muted" style="margin: 12px 0;">
+          No SRTM tiles loaded. Upload tiles for your area of operations for accurate elevation data.
+        </p>
+      `;
+    } else {
+      let html = `<p class="small" style="margin: 12px 0;"><strong>${tiles.length} tiles loaded:</strong></p><ul class="bullet-list small">`;
+      tiles.forEach(tileId => {
+        html += `<li>${tileId}</li>`;
+      });
+      html += '</ul>';
+      listDiv.innerHTML = html;
+    }
+
+    if (typeof UIFeedback !== 'undefined') {
+      UIFeedback.Toast.info(`${tiles.length} SRTM tiles loaded`, 2000);
+    }
+  } catch (error) {
+    console.error('[MapViewer] Error listing SRTM tiles:', error);
+
+    if (typeof UIFeedback !== 'undefined') {
+      UIFeedback.Toast.error('Failed to list SRTM tiles', 3000);
     }
   }
 }
