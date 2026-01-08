@@ -50,32 +50,82 @@ const PhysicsEngine = (() => {
 
   /**
    * Calculate battery capacity reduction due to temperature
-   * Li-ion/LiPo batteries lose capacity in cold weather
+   * Enhanced cold-weather derating model for -40°C to +50°C range
+   * Based on LiPo/Li-ion electrochemical performance curves
    */
   const calculateBatteryDerating = (temperatureC, chemistry = 'LiPo') => {
-    let derating = 1.0; // Default: no derating
+    let derating = 1.0; // Default: optimal capacity
 
-    // Temperature derating models
-    if (temperatureC < 20 && temperatureC >= -10) {
-      // Mild cold: -1% capacity per degree below 20°C
-      derating = 1 - (0.01 * (20 - temperatureC));
-    } else if (temperatureC < -10) {
-      // Severe cold: Base 30% reduction + additional -2% per degree below -10°C
-      const baseLoss = 0.30;
-      const additionalLoss = 0.02 * (-10 - temperatureC);
-      derating = 1 - (baseLoss + additionalLoss);
+    // Enhanced temperature derating model
+    if (temperatureC >= 15 && temperatureC <= 25) {
+      // Optimal operating range: 100% capacity
+      derating = 1.0;
+
+    } else if (temperatureC > 25 && temperatureC <= 40) {
+      // Warm conditions: slight capacity reduction
+      // -0.3% per degree above 25°C
+      derating = 1 - (0.003 * (temperatureC - 25));
+
     } else if (temperatureC > 40) {
-      // High temperature: Reduced discharge capability
-      // -0.5% per degree above 40°C
-      derating = 1 - (0.005 * (temperatureC - 40));
+      // High temperature: accelerated degradation and reduced discharge capability
+      // -0.8% per degree above 40°C (more aggressive than warm)
+      derating = 1 - (0.045 + 0.008 * (temperatureC - 40));
+
+    } else if (temperatureC >= 0 && temperatureC < 15) {
+      // Mild cold: gradual capacity reduction
+      // -1% per degree below 15°C
+      derating = 1 - (0.01 * (15 - temperatureC));
+
+    } else if (temperatureC >= -20 && temperatureC < 0) {
+      // Cold: more aggressive capacity reduction
+      // Start at 85% (from 0°C) and lose -1.5% per degree below 0°C
+      const baseCapacity = 0.85; // 15% already lost from 15°C to 0°C
+      derating = baseCapacity - (0.015 * (0 - temperatureC));
+
+    } else if (temperatureC >= -40 && temperatureC < -20) {
+      // Extreme cold: severe capacity reduction
+      // Start at 55% (from -20°C) and lose -2.5% per degree below -20°C
+      const baseCapacity = 0.55; // 30% lost from 0°C to -20°C
+      derating = baseCapacity - (0.025 * (-20 - temperatureC));
+
+    } else if (temperatureC < -40) {
+      // Beyond operating limits: critical capacity reduction
+      // Fixed minimum to prevent complete failure
+      derating = 0.10; // Only 10% capacity at extreme cold
     }
 
-    // Ensure minimum 20% capacity even in extreme conditions
-    derating = Math.max(derating, 0.2);
+    // Ensure minimum 10% capacity floor (battery can still provide some power)
+    // but flag as non-operational below 15%
+    derating = Math.max(derating, 0.10);
+
+    // Calculate capacity reduction percentage
+    const capacityReduction = (1 - derating) * 100;
+
+    // Determine severity level for warnings
+    let severity = 'nominal';
+    let warning = null;
+
+    if (derating < 0.15) {
+      severity = 'critical';
+      warning = `CRITICAL: Only ${Math.round(derating * 100)}% battery capacity at ${temperatureC}°C. Mission likely not feasible.`;
+    } else if (derating < 0.30) {
+      severity = 'severe';
+      warning = `SEVERE: Battery capacity reduced to ${Math.round(derating * 100)}% at ${temperatureC}°C. Expect significant endurance loss.`;
+    } else if (derating < 0.50) {
+      severity = 'warning';
+      warning = `WARNING: Battery capacity reduced to ${Math.round(derating * 100)}% at ${temperatureC}°C. Plan for reduced flight time.`;
+    } else if (derating < 0.85) {
+      severity = 'caution';
+      warning = `CAUTION: Battery capacity ${Math.round(derating * 100)}% at ${temperatureC}°C. Minor derating expected.`;
+    }
 
     return {
       deratingFactor: derating,
-      capacityReduction: (1 - derating) * 100
+      capacityReduction: capacityReduction,
+      effectiveCapacityPct: Math.round(derating * 100),
+      severity: severity,
+      warning: warning,
+      temperatureC: temperatureC
     };
   };
 

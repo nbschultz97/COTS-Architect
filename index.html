@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ceradon Architect - Offline Mission Planning</title>
   <link rel="stylesheet" href="assets/css/styles.css">
+  <!-- Leaflet CSS for offline mapping -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""/>
   <!-- Air-gap compliant: No external CDN dependencies -->
 </head>
 <body>
@@ -20,6 +24,7 @@
         <li><a href="/#/platform" data-route="platform">Platform Designer</a></li>
         <li><a href="/#/mission" data-route="mission">Mission Planner</a></li>
         <li><a href="/#/comms" data-route="comms">Comms Validator</a></li>
+        <li><a href="/#/map" data-route="map">Map</a></li>
         <li><a href="/#/export" data-route="export">Export</a></li>
       </ul>
     </nav>
@@ -342,10 +347,53 @@
       </div>
     </section>
 
+    <!-- MAP VIEWER -->
+    <section id="map" class="view" aria-label="Map Viewer" hidden>
+      <div class="section-header">
+        <p class="eyebrow">Offline GIS</p>
+        <h2>Map & Environmental Intelligence</h2>
+        <p class="lead">Select mission locations on the map. Automatically populate coordinates, elevation, and historical environmental data.</p>
+      </div>
+
+      <div class="tool-panel">
+        <div class="card">
+          <h3>Mission Location Picker</h3>
+          <p class="small muted">Click on the map to select a location. Lat/lon and elevation will auto-populate from terrain data.</p>
+          <div id="mapContainer" style="height: 500px; width: 100%; margin-top: 12px; border-radius: 8px; overflow: hidden;"></div>
+        </div>
+
+        <div class="card">
+          <h3>Selected Location</h3>
+          <div id="selectedLocationInfo">
+            <p class="small muted">No location selected. Click on the map to select.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Environmental Intelligence</h3>
+          <p class="small muted">Historical weather data for selected location and mission date.</p>
+          <div class="form-grid">
+            <label>Mission Date
+              <input type="date" id="missionDate" />
+            </label>
+            <button class="btn primary" id="getEnvironmentalData">Get Environmental Data</button>
+          </div>
+          <div id="environmentalDataDisplay"></div>
+        </div>
+
+        <div class="card">
+          <h3>SRTM Elevation Data</h3>
+          <p class="small muted">Manage offline elevation tiles for terrain-aware planning.</p>
+          <div id="srtmTilesList"></div>
+          <button class="btn subtle" id="listSRTMTiles">List Loaded Tiles</button>
+        </div>
+      </div>
+    </section>
+
     <!-- EXPORT -->
     <section id="export" class="view" aria-label="Export" hidden>
       <div class="section-header">
-        <p class="eyebrow">Module 5</p>
+        <p class="eyebrow">Mission Package</p>
         <h2>Export Mission Package</h2>
         <p class="lead">Download your complete mission package as JSON, GeoJSON, or CoT for field deployment.</p>
       </div>
@@ -392,6 +440,11 @@
     <p class="small">Ceradon Architect — Offline-first mission planning for contested environments</p>
   </footer>
 
+  <!-- Load Leaflet library (offline mapping) -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""></script>
+
   <!-- Load event bus and UI feedback first -->
   <script src="assets/js/mission_project_events.js"></script>
   <script src="assets/js/ui_feedback.js"></script>
@@ -403,6 +456,11 @@
   <script src="assets/js/mission_planner.js"></script>
   <script src="assets/js/comms_validator.js"></script>
   <script src="assets/js/csv_importer.js"></script>
+
+  <!-- GIS and Environmental Intelligence modules -->
+  <script src="assets/js/srtm_elevation.js"></script>
+  <script src="assets/js/environment_almanac.js"></script>
+  <script src="assets/js/map_viewer.js"></script>
 
   <!-- Then load MissionProject store and main app -->
   <script src="assets/js/mission_project.js"></script>
