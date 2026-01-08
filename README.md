@@ -12,30 +12,46 @@ Ceradon Architect is a professional, offline-first web application for sUAS miss
 
 **Live Demo:** <https://architect.ceradonsystems.com> (GitHub Pages)
 
-> **✅ v0.3.0 Baseline** - Functionally complete for air-gapped deployment. Security hardened for sensitive inventory ingestion. See [SECURITY_AUDIT_v0.3.md](SECURITY_AUDIT_v0.3.md) for certification details.
+> **✅ v0.3.0 Baseline** - Environmentally aware intelligence engine for air-gapped operations. Offline GIS, historical weather almanac, and enhanced cold-weather derating. See [v0.3_offline_gis_almanac.md](docs/v0.3_offline_gis_almanac.md) for full documentation.
 
-## What's New in v0.3.0 🔒
+## What's New in v0.3.0 🗺️
+
+**Offline GIS & Coordinate Automation:**
+- ✅ **Interactive Map Viewer** - Leaflet-based offline mapping with click-to-select location picker
+- ✅ **Auto-Population** - Lat/lon/elevation automatically populate mission planning from map clicks
+- ✅ **SRTM Elevation Data** - Terrain-aware planning with Shuttle Radar Topography Mission integration
+- ✅ **Elevation Caching** - LocalStorage-based caching for performance (<50ms queries)
+- ✅ **Cross-Module Propagation** - Location selections automatically update Platform Designer, Mission Planner, Comms Validator
+
+**Offline Environmental Intelligence (The Almanac):**
+- ✅ **Historical Weather Database** - IndexedDB-backed climate data indexed by region and month
+- ✅ **Auto-Suggestion System** - Temperature and wind auto-suggested based on location + mission date
+- ✅ **Regional Coverage** - Pre-loaded Kandahar, Arctic Circle, Sahara (expandable to any region)
+- ✅ **Seasonal Interpolation** - Day-of-year based calculations for accurate seasonal conditions
+- ✅ **Mission Feasibility Warnings** - Automated alerts for extreme conditions that impact mission success
+
+**Enhanced Cold-Weather Battery Derating:**
+- ✅ **Extended Temperature Range** - Now supports -40°C to +50°C (enhanced from -10°C to +40°C)
+- ✅ **Piecewise Linear Model** - 5 temperature zones with granular derating factors
+- ✅ **Severity-Based Warnings** - Nominal/Caution/Warning/Severe/Critical alerts with mission impact
+- ✅ **Arctic Mission Support** - At -40°C: 5% battery capacity with CRITICAL failure warning
+- ✅ **Real-Time Validation** - Battery derating instantly propagates to flight time and logistics
 
 **Security Hardening & Air-Gap Compliance:**
-- ✅ **100% Air-Gap Compliant** - All external CDN dependencies removed (Google Fonts)
-- ✅ **Client Agnostic** - Generic "Empty Ledger" model with demo parts catalog
-- ✅ **Sensitive Data Ready** - CSV importer security audited for unit property book ingestion
+- ✅ **100% Client-Agnostic** - No hard-coded units, exercises, or locations (generic demo data only)
+- ✅ **"Empty Ledger" Model** - Units load sensitive inventory via CSV locally
 - ✅ **Offline-First Validated** - Zero external API calls, runs on disconnected ruggedized laptops
+- ✅ **Security Audited** - See [SECURITY_AUDIT_v0.3.md](SECURITY_AUDIT_v0.3.md) for certification
 
 **Doctrinal Reporting & ATAK Interoperability:**
-- ✅ **SALUTE Reports** - Pre-filled tactical reports from mission data (Size, Activity, Location, Unit, Time, Equipment)
+- ✅ **SALUTE Reports** - Pre-filled tactical reports from mission data
 - ✅ **16-Line Incident Reports** - MEDEVAC/incident template with mission context
 - ✅ **Spot Reports** - Quick tactical reporting with auto-generated DTG
 - ✅ **CoT/GeoJSON Export** - ATAK-compatible mission packages with nodes, platforms, and mesh links
-- ✅ **Mission Cards** - Icon-driven phase cards for partner forces (JSON stub, PDF pending)
-
-**Physics-Based Environmental Derating:**
-- ✅ **Altitude Effects** - Thrust reduction due to thin air (up to 25% loss at 2500m)
-- ✅ **Temperature Effects** - Battery capacity loss in extreme cold (-40°C to +50°C range)
-- ✅ **Real-Time Validation** - Environmental factors automatically propagate through mission planning
 
 **Verified Data Propagation:**
-- ✅ **Auto-Updates** - Platform design changes automatically recalculate mission batteries and packing lists
+- ✅ **Auto-Updates** - Platform battery changes automatically recalculate mission logistics
+- ✅ **Event-Driven Architecture** - Changes flow seamlessly across all modules
 - ✅ **Toast Notifications** - User feedback when cross-module updates occur
 
 **What's New (Previous: v0.3.0-alpha.2)**
@@ -72,7 +88,21 @@ Navigate with hash routes:
 - `/#/platform` - Platform Designer (build and validate platforms)
 - `/#/mission` - Mission Planner (phases, logistics, packing lists)
 - `/#/comms` - Comms Validator (RF link budgets, relay placement)
+- `/#/map` - **NEW** Map Viewer (GIS, location picker, environmental almanac)
 - `/#/export` - Export mission packages (JSON, GeoJSON, CoT)
+
+### Demo Site vs Production Deployment
+
+**GitHub Pages Demo** ([architect.ceradonsystems.com](https://architect.ceradonsystems.com)):
+- ✅ All features functional online
+- ✅ Map viewer, environmental almanac, and SRTM elevation work
+- ⚠️ Leaflet loads from CDN (requires internet for first load)
+- ⚠️ Map tiles load from OpenStreetMap (requires internet)
+
+**Production Air-Gap Deployment:**
+- For true offline operation, bundle Leaflet locally and pre-cache map tiles
+- See [docs/v0.3_offline_gis_almanac.md](docs/v0.3_offline_gis_almanac.md) for air-gap deployment instructions
+- SRTM tiles can be loaded manually for your area of operations
 
 ## Application Structure
 
