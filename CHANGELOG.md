@@ -15,6 +15,90 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.0-alpha.1] - 2026-01-08
+
+### Offline Tool + Web Playground (SYNCED)
+
+**DEPLOYMENT POLICY**: Web playground now ALWAYS mirrors offline version.
+
+#### Added
+- **Automatic Data Propagation System (CRITICAL FEATURE)**
+  - Created centralized event bus (`mission_project_events.js`) for cross-module communication
+  - Platform Designer changes now automatically trigger Mission Planner recalculations
+  - Motor swap in Platform Designer immediately updates battery requirements and ruck weight
+  - All modules emit and listen for relevant events (platform updates, mission updates, comms updates)
+  - Cross-tab synchronization via localStorage events
+  - Console logging for debugging data propagation flow
+
+- **Doctrinal Reporting (SOF REQUIREMENTS)**
+  - **Spot Report Generator**: 6-line tactical report (Size, Activity, Location, Unit, Time, Equipment)
+  - **SALUTE Report Generator**: Comprehensive situational awareness report with auto-populated fields
+  - **16-Line Incident Report**: MEDEVAC/incident template with mission data pre-filled
+  - All reports auto-extract coordinates, team info, and equipment from MissionProject
+  - Export as formatted text files ready for tactical use
+  - DTG (Date-Time-Group) automatically generated in military format
+
+- **Mission Cards (Stub for Future Enhancement)**
+  - Basic mission card generation from mission phases
+  - JSON export with phase names, durations, and platform assignments
+  - TODO markers for icon library, QR codes, and print-optimized PDF layout
+
+- **UI Feedback System (NEW)**
+  - Comprehensive toast notification system with 5 types (success, error, warning, info, sync)
+  - Auto-dismiss toasts with manual close option
+  - Loading spinner overlay for async operations
+  - Success checkmark animations
+  - Pulse animations for badges
+  - Confirm dialog system (replaces native alerts)
+  - All UI feedback accessible via `UIFeedback` global object
+
+- **Visual Feedback for Data Propagation**
+  - Toast notifications when platform changes trigger mission updates
+  - Animated sync icon (🔄) for propagation events
+  - Warning toasts when platforms removed from missions
+  - Success toasts for all doctrinal report exports
+
+#### Changed
+- **Platform Designer** (v1.0.0 → v1.1.0)
+  - Now emits events when designs are saved or deleted
+  - Automatic validation propagation to dependent modules
+
+- **Mission Planner** (v1.0.0 → v1.1.0)
+  - Automatically recalculates logistics when platform designs change
+  - Listens for platform deletion events and updates mission plans accordingly
+  - Console warnings when platforms are removed from missions
+
+- **Export Module** (v0.5.0-alpha → v1.0.0-beta)
+  - Added three doctrinal report export buttons with icons (📍 📊 🚑)
+  - Success toast notifications for all exports
+  - Error handling with user-friendly toast messages
+  - Upgraded from alpha to beta status with comprehensive reporting
+
+- **UI Enhancements**
+  - Report buttons now have emoji icons for better visual identification
+  - CSS animations for toasts, spinners, and success checkmarks (~280 lines)
+  - Responsive toast container (top-right on desktop, full-width on mobile)
+  - Accessible ARIA labels for all notifications
+
+#### Technical Improvements
+- Event-driven architecture eliminates manual refresh requirements
+- All modules now extend window object for cross-module access
+- MissionProjectStore emits events on save operations
+- Storage event listeners enable multi-tab synchronization
+
+#### Documentation
+- Updated version.json to reflect new features and version bumps
+- Added "Digital Construction Foreman" subtitle to description
+- Documented data propagation system in module notes
+- **CRITICAL**: Added "MIRROR-FIRST" deployment policy to version.json
+- WebPlayground version synced to offline (both v0.4.0-alpha.1)
+
+#### Files Added
+- `assets/js/ui_feedback.js` - Toast notification and UI feedback system (+240 lines)
+- `assets/css/styles.css` - UI feedback CSS (+280 lines appended)
+
+---
+
 ## [0.3.0-alpha.2] - 2026-01-07
 
 ### Offline Tool

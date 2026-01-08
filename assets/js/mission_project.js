@@ -533,6 +533,363 @@ const MissionProjectStore = (() => {
     reader.readAsText(file);
   });
 
+  /**
+   * Generate Spot Report from mission project
+   * Standard format used for immediate tactical reporting
+   */
+  const generateSpotReport = (project) => {
+    const now = new Date();
+    const dtg = now.toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+
+    // Extract location from first node or platform with coordinates
+    let location = 'PENDING COORDINATES';
+    const firstNode = ensureArray(project.nodes).find(n => n.geo?.lat && n.geo?.lon);
+    const firstPlatform = ensureArray(project.platforms).find(p => p.geo?.lat && p.geo?.lon);
+    const geoEntity = firstNode || firstPlatform;
+
+    if (geoEntity) {
+      const lat = geoEntity.geo.lat.toFixed(6);
+      const lon = geoEntity.geo.lon.toFixed(6);
+      location = `${lat}N ${lon}E`;
+    }
+
+    const report = {
+      type: 'SPOT_REPORT',
+      dtg: dtg,
+      mission_name: project.meta?.name || 'UNTITLED MISSION',
+      line1_size: `${ensureArray(project.platforms).length} UxS platforms, ${ensureArray(project.nodes).length} ground nodes`,
+      line2_activity: project.mission?.tasks?.map(t => t.name).join('; ') || 'Mission planning in progress',
+      line3_location: location,
+      line4_unit: project.meta?.team?.size ? `${project.meta.team.size}-person team` : 'Team size TBD',
+      line5_time: `Mission duration: ${project.meta?.durationHours || 0} hours`,
+      line6_equipment: [
+        ...ensureArray(project.platforms).map(p => `${p.name} (${p.type})`),
+        ...ensureArray(project.nodes).filter(n => n.role === 'relay').map(n => n.name)
+      ].join(', ') || 'Equipment list pending',
+      narrative: `Planning ${project.meta?.scenario || 'mission'} with ${ensureArray(project.platforms).length} platforms across ${project.mission?.phases?.length || 0} phases.`,
+      reported_by: 'CERADON_ARCHITECT'
+    };
+
+    return report;
+  };
+
+  /**
+   * Export Spot Report as text file
+   */
+  const exportSpotReport = (fileName = 'spot_report.txt') => {
+    const project = loadMissionProject();
+    const report = generateSpotReport(project);
+
+    const lines = [
+      '='.repeat(60),
+      'SPOT REPORT',
+      '='.repeat(60),
+      '',
+      `DTG: ${report.dtg}`,
+      `MISSION: ${report.mission_name}`,
+      '',
+      `LINE 1 - SIZE: ${report.line1_size}`,
+      `LINE 2 - ACTIVITY: ${report.line2_activity}`,
+      `LINE 3 - LOCATION: ${report.line3_location}`,
+      `LINE 4 - UNIT: ${report.line4_unit}`,
+      `LINE 5 - TIME: ${report.line5_time}`,
+      `LINE 6 - EQUIPMENT: ${report.line6_equipment}`,
+      '',
+      'NARRATIVE:',
+      report.narrative,
+      '',
+      `REPORTED BY: ${report.reported_by}`,
+      '',
+      '='.repeat(60)
+    ];
+
+    const content = lines.join('\n');
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    return report;
+  };
+
+  /**
+   * Generate SALUTE Report from mission project
+   * Standard format: Size, Activity, Location, Unit, Time, Equipment
+   */
+  const generateSALUTEReport = (project) => {
+    const now = new Date();
+    const dtg = now.toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+
+    // Extract primary operating area
+    const env = ensureArray(project.environment)[0] || {};
+    let location = 'AREA OF OPERATIONS TBD';
+    const firstNode = ensureArray(project.nodes).find(n => n.geo?.lat && n.geo?.lon);
+    if (firstNode) {
+      location = `${firstNode.geo.lat.toFixed(5)}N ${firstNode.geo.lon.toFixed(5)}E, ALT ${env.elevationM || 0}m`;
+    }
+
+    const report = {
+      type: 'SALUTE_REPORT',
+      dtg: dtg,
+      mission_ref: project.meta?.name || 'UNTITLED',
+      size: {
+        platforms: ensureArray(project.platforms).length,
+        nodes: ensureArray(project.nodes).length,
+        operators: project.meta?.team?.size || 0,
+        description: `${ensureArray(project.platforms).length} UxS, ${ensureArray(project.nodes).length} nodes, ${project.meta?.team?.size || 0} personnel`
+      },
+      activity: {
+        phases: ensureArray(project.mission?.phases).length,
+        duration_hours: project.meta?.durationHours || 0,
+        tasks: ensureArray(project.mission?.tasks).map(t => t.name),
+        description: ensureArray(project.mission?.tasks).map(t => t.name).join(', ') || 'Planning in progress'
+      },
+      location: {
+        primary_ao: location,
+        terrain: env.terrain || 'mixed',
+        altitude_band: env.altitudeBand || 'TBD',
+        temperature_band: env.temperatureBand || 'TBD'
+      },
+      unit: {
+        team_size: project.meta?.team?.size || 0,
+        roles: ensureArray(project.meta?.team?.roles),
+        description: ensureArray(project.meta?.team?.roles).join(', ') || 'Team composition TBD'
+      },
+      time: {
+        mission_duration_hours: project.meta?.durationHours || 0,
+        phases: ensureArray(project.mission?.phases).map(p => ({
+          name: p.name,
+          duration_hours: p.durationHours || 0
+        })),
+        description: `${project.meta?.durationHours || 0}hr operation across ${ensureArray(project.mission?.phases).length} phases`
+      },
+      equipment: {
+        platforms: ensureArray(project.platforms).map(p => ({
+          name: p.name,
+          type: p.type,
+          role: p.role,
+          endurance_min: p.enduranceMin
+        })),
+        rf_systems: [...new Set(ensureArray(project.platforms).flatMap(p => p.rf_bands || []))],
+        kits: ensureArray(project.kits).map(k => k.name),
+        description: ensureArray(project.platforms).map(p => `${p.name} (${p.type})`).join(', ')
+      },
+      narrative: `Mission: ${project.meta?.scenario || project.meta?.description || 'TBD'}. Planning ${ensureArray(project.platforms).length} UxS platforms with ${project.meta?.team?.size || 0} operators for ${project.meta?.durationHours || 0}-hour operation.`,
+      reported_by: 'CERADON_ARCHITECT'
+    };
+
+    return report;
+  };
+
+  /**
+   * Export SALUTE Report as text file
+   */
+  const exportSALUTEReport = (fileName = 'salute_report.txt') => {
+    const project = loadMissionProject();
+    const report = generateSALUTEReport(project);
+
+    const lines = [
+      '='.repeat(70),
+      'SALUTE REPORT',
+      '='.repeat(70),
+      '',
+      `DTG: ${report.dtg}`,
+      `MISSION REF: ${report.mission_ref}`,
+      '',
+      'S - SIZE:',
+      `  ${report.size.description}`,
+      `  Platforms: ${report.size.platforms}`,
+      `  Ground Nodes: ${report.size.nodes}`,
+      `  Operators: ${report.size.operators}`,
+      '',
+      'A - ACTIVITY:',
+      `  ${report.activity.description}`,
+      `  Duration: ${report.activity.duration_hours} hours`,
+      `  Phases: ${report.activity.phases}`,
+      '',
+      'L - LOCATION:',
+      `  AO: ${report.location.primary_ao}`,
+      `  Terrain: ${report.location.terrain}`,
+      `  Altitude: ${report.location.altitude_band}`,
+      `  Temperature: ${report.location.temperature_band}`,
+      '',
+      'U - UNIT:',
+      `  Team Size: ${report.unit.team_size}`,
+      `  Composition: ${report.unit.description}`,
+      '',
+      'T - TIME:',
+      `  ${report.time.description}`,
+      report.time.phases.map(p => `  - ${p.name}: ${p.duration_hours}hrs`).join('\n'),
+      '',
+      'E - EQUIPMENT:',
+      `  ${report.equipment.description}`,
+      `  RF Bands: ${report.equipment.rf_systems.join(', ') || 'TBD'}`,
+      `  Kits: ${report.equipment.kits.join(', ') || 'None'}`,
+      '',
+      'NARRATIVE:',
+      report.narrative,
+      '',
+      `REPORTED BY: ${report.reported_by}`,
+      '',
+      '='.repeat(70)
+    ];
+
+    const content = lines.join('\n');
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    return report;
+  };
+
+  /**
+   * Generate 16-Line Incident Report template from mission project
+   * Standard military incident/MEDEVAC report format
+   */
+  const generate16LineReport = (project) => {
+    const now = new Date();
+    const dtg = now.toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+
+    // Extract location from project
+    let location = 'GRID PENDING';
+    const firstNode = ensureArray(project.nodes).find(n => n.geo?.lat && n.geo?.lon);
+    if (firstNode) {
+      location = `${firstNode.geo.lat.toFixed(5)}N ${firstNode.geo.lon.toFixed(5)}E`;
+    }
+
+    const report = {
+      type: '16_LINE_REPORT',
+      dtg: dtg,
+      mission_ref: project.meta?.name || 'UNTITLED',
+      line1_location: location,
+      line2_callsign: project.meta?.name?.replace(/\s+/g, '_').toUpperCase() || 'MISSION_CALLSIGN',
+      line3_precedence: 'ROUTINE',
+      line4_special_equipment: ensureArray(project.platforms).map(p => p.name).join(', ') || 'NONE',
+      line5_patients: '0 (TEMPLATE - UPDATE AS NEEDED)',
+      line6_security: 'GREEN (Area secure)',
+      line7_marking: 'TO BE DETERMINED',
+      line8_nationality: 'FRIENDLY',
+      line9_terrain: (ensureArray(project.environment)[0]?.terrain || 'MIXED').toUpperCase(),
+      line10_obstacles: 'NONE KNOWN',
+      line11_weather: (ensureArray(project.environment)[0]?.weather || 'CLEAR').toUpperCase(),
+      line12_temp: ensureArray(project.environment)[0]?.temperatureBand || 'TBD',
+      line13_winds: 'UNKNOWN',
+      line14_hoist: 'NOT REQUIRED',
+      line15_crew: 'NONE',
+      line16_ventilation: 'N/A',
+      notes: 'This is a TEMPLATE generated from mission planning data. Update fields 5-16 based on actual situation.',
+      reported_by: 'CERADON_ARCHITECT'
+    };
+
+    return report;
+  };
+
+  /**
+   * Generate Mission Cards from mission project (Stub for future enhancement)
+   * TODO: Full implementation with icon library, QR codes, and print-optimized layout
+   */
+  const generateMissionCards = (project) => {
+    const cards = [];
+
+    ensureArray(project.mission?.phases).forEach((phase, idx) => {
+      cards.push({
+        card_number: idx + 1,
+        phase_name: phase.name,
+        duration_hours: phase.durationHours || 0,
+        focus: phase.focus || 'TBD',
+        platforms: ensureArray(project.platforms).map(p => ({ name: p.name, type: p.type })),
+        simple_instructions: `Phase ${idx + 1}: ${phase.name}. Duration: ${phase.durationHours || 0} hours.`
+      });
+    });
+
+    return {
+      mission_name: project.meta?.name || 'Untitled Mission',
+      total_cards: cards.length,
+      cards: cards,
+      note: 'Full icon library and print-optimized PDF layout coming in future release'
+    };
+  };
+
+  /**
+   * Export Mission Cards as JSON (stub for future print-optimized PDF)
+   */
+  const exportMissionCards = (fileName = 'mission_cards.json') => {
+    const project = loadMissionProject();
+    const cards = generateMissionCards(project);
+
+    const json = JSON.stringify(cards, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    return cards;
+  };
+
+  /**
+   * Export 16-Line Report as text file
+   */
+  const export16LineReport = (fileName = '16line_report.txt') => {
+    const project = loadMissionProject();
+    const report = generate16LineReport(project);
+
+    const lines = [
+      '='.repeat(70),
+      '16-LINE INCIDENT REPORT TEMPLATE',
+      '='.repeat(70),
+      '',
+      `DTG: ${report.dtg}`,
+      `MISSION REF: ${report.mission_ref}`,
+      '',
+      '⚠️  THIS IS A TEMPLATE - UPDATE WITH ACTUAL INCIDENT DATA',
+      '',
+      `LINE 1 - LOCATION: ${report.line1_location}`,
+      `LINE 2 - CALLSIGN/FREQUENCY: ${report.line2_callsign}`,
+      `LINE 3 - PRECEDENCE: ${report.line3_precedence}`,
+      `LINE 4 - SPECIAL EQUIPMENT: ${report.line4_special_equipment}`,
+      `LINE 5 - NUMBER OF PATIENTS: ${report.line5_patients}`,
+      `LINE 6 - SECURITY AT SITE: ${report.line6_security}`,
+      `LINE 7 - MARKING METHOD: ${report.line7_marking}`,
+      `LINE 8 - NATIONALITY: ${report.line8_nationality}`,
+      `LINE 9 - TERRAIN DESCRIPTION: ${report.line9_terrain}`,
+      `LINE 10 - OBSTACLES: ${report.line10_obstacles}`,
+      `LINE 11 - WEATHER: ${report.line11_weather}`,
+      `LINE 12 - TEMPERATURE: ${report.line12_temp}`,
+      `LINE 13 - WINDS: ${report.line13_winds}`,
+      `LINE 14 - HOIST REQUIRED: ${report.line14_hoist}`,
+      `LINE 15 - CREW ON SCENE: ${report.line15_crew}`,
+      `LINE 16 - VENTILATION REQUIRED: ${report.line16_ventilation}`,
+      '',
+      'NOTES:',
+      report.notes,
+      '',
+      `GENERATED BY: ${report.reported_by}`,
+      '',
+      '='.repeat(70)
+    ];
+
+    const content = lines.join('\n');
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    return report;
+  };
+
   return {
     STORAGE_KEY,
     MISSION_PROJECT_SCHEMA_VERSION,
@@ -551,7 +908,17 @@ const MissionProjectStore = (() => {
     importMissionProject,
     importMissionProjectFromText,
     getLastUpdated,
-    UPDATED_AT_KEY
+    UPDATED_AT_KEY,
+    // Doctrinal reporting
+    generateSpotReport,
+    exportSpotReport,
+    generateSALUTEReport,
+    exportSALUTEReport,
+    generate16LineReport,
+    export16LineReport,
+    // Mission Cards (stub)
+    generateMissionCards,
+    exportMissionCards
   };
 })();
 

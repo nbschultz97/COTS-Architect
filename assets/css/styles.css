@@ -1334,3 +1334,323 @@ h1, h2, h3, h4 {
     grid-template-columns: 1fr;
   }
 }
+
+/* ============================================================================
+   UI FEEDBACK ENHANCEMENTS
+   Toast notifications, spinners, animations, and visual feedback
+   ============================================================================ */
+
+/* Toast Notification Container */
+#toast-container {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 420px;
+  pointer-events: none;
+}
+
+/* Toast */
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  pointer-events: all;
+  opacity: 0;
+  transform: translateX(400px);
+  transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.toast.toast-show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.toast.toast-hide {
+  opacity: 0;
+  transform: translateX(400px);
+}
+
+.toast-icon {
+  font-size: 24px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.toast-message {
+  flex: 1;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.toast-close {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  transition: color 0.2s ease;
+}
+
+.toast-close:hover {
+  color: var(--text);
+}
+
+/* Toast Types */
+.toast-success {
+  border-left: 4px solid #2dd4bf;
+}
+
+.toast-success .toast-icon {
+  color: #2dd4bf;
+}
+
+.toast-error {
+  border-left: 4px solid #f87171;
+}
+
+.toast-error .toast-icon {
+  color: #f87171;
+}
+
+.toast-warning {
+  border-left: 4px solid #fbbf24;
+}
+
+.toast-warning .toast-icon {
+  color: #fbbf24;
+}
+
+.toast-info {
+  border-left: 4px solid var(--accent);
+}
+
+.toast-info .toast-icon {
+  color: var(--accent);
+}
+
+.toast-sync {
+  border-left: 4px solid #a78bfa;
+}
+
+.toast-sync .toast-icon {
+  color: #a78bfa;
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Loading Spinner Overlay */
+.spinner-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 19, 26, 0.85);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9998;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.spinner-overlay.spinner-show {
+  opacity: 1;
+}
+
+.spinner-content {
+  text-align: center;
+  color: var(--text);
+}
+
+.spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid var(--border);
+  border-top: 4px solid var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner-message {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* Success Checkmark Animation */
+.success-checkmark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.success-checkmark.checkmark-show {
+  opacity: 1;
+}
+
+.checkmark-svg {
+  width: 80px;
+  height: 80px;
+  display: block;
+  stroke-width: 3;
+  stroke: #2dd4bf;
+  stroke-miterlimit: 10;
+  box-shadow: inset 0 0 0 #2dd4bf;
+}
+
+.checkmark-circle {
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  stroke-width: 3;
+  stroke: #2dd4bf;
+  fill: var(--panel);
+  animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.checkmark-check {
+  transform-origin: 50% 50%;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.6s forwards;
+}
+
+@keyframes stroke {
+  100% { stroke-dashoffset: 0; }
+}
+
+/* Pulse Animation for Badges */
+.pulse-animation {
+  animation: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) 2;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.15);
+  }
+}
+
+/* Highlight Flash Animation */
+@keyframes highlight-flash {
+  0% { background-color: transparent; }
+  50% { background-color: rgba(251, 191, 36, 0.3); }
+  100% { background-color: transparent; }
+}
+
+/* Confirm Modal */
+.confirm-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 19, 26, 0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.confirm-modal.confirm-show {
+  opacity: 1;
+}
+
+.confirm-modal.confirm-hide {
+  opacity: 0;
+}
+
+.confirm-content {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+  max-width: 480px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  transform: scale(0.9);
+  transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.confirm-modal.confirm-show .confirm-content {
+  transform: scale(1);
+}
+
+.confirm-content h3 {
+  margin: 0 0 16px;
+  font-size: 1.5em;
+  color: var(--text);
+}
+
+.confirm-content p {
+  margin: 0 0 24px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+/* Report Button Icons */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-icon::before {
+  font-size: 1.2em;
+  line-height: 1;
+}
+
+/* Mobile Adjustments */
+@media (max-width: 600px) {
+  #toast-container {
+    left: 10px;
+    right: 10px;
+    max-width: none;
+  }
+
+  .toast {
+    padding: 12px 14px;
+  }
+
+  .confirm-content {
+    padding: 20px;
+  }
+}
