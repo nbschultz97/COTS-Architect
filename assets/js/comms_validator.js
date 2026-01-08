@@ -469,6 +469,8 @@ const CommsValidator = (() => {
     analysis.modified = new Date().toISOString();
 
     const index = analyses.findIndex(a => a.id === analysis.id);
+    const isNew = index < 0;
+
     if (index >= 0) {
       analyses[index] = analysis;
     } else {
@@ -476,6 +478,16 @@ const CommsValidator = (() => {
     }
 
     saveAnalyses(analyses);
+
+    // Emit event for cross-module propagation
+    if (typeof MissionProjectEvents !== 'undefined') {
+      MissionProjectEvents.emit(MissionProjectEvents.EVENTS.COMMS_ANALYSIS_UPDATED, {
+        analysis: analysis,
+        isNew: isNew,
+        allAnalyses: analyses
+      });
+    }
+
     return analysis;
   };
 
@@ -494,6 +506,15 @@ const CommsValidator = (() => {
     const analyses = loadAnalyses();
     const filtered = analyses.filter(a => a.id !== id);
     saveAnalyses(filtered);
+
+    // Emit event for cross-module propagation
+    if (typeof MissionProjectEvents !== 'undefined') {
+      MissionProjectEvents.emit(MissionProjectEvents.EVENTS.COMMS_ANALYSIS_DELETED, {
+        analysisId: id,
+        allAnalyses: filtered
+      });
+    }
+
     return true;
   };
 
@@ -581,6 +602,25 @@ const CommsValidator = (() => {
     URL.revokeObjectURL(url);
   };
 
+  /**
+   * Auto-update comms analyses when platform designs change (RF bands)
+   */
+  const initPlatformDesignListener = () => {
+    if (typeof MissionProjectEvents === 'undefined') return;
+
+    MissionProjectEvents.on(MissionProjectEvents.EVENTS.PLATFORM_DESIGN_UPDATED, (detail) => {
+      // Platform radio changes could affect comms analysis
+      // Log for now - future enhancement: auto-sync platform radios to comms nodes
+      console.log(`[CommsValidator] Platform design updated: ${detail.design.name}`);
+      console.log(`[CommsValidator] Consider updating comms nodes if platform radios changed`);
+    });
+  };
+
+  // Initialize listeners on load
+  if (typeof window !== 'undefined') {
+    setTimeout(initPlatformDesignListener, 100); // Wait for MissionProjectEvents to load
+  }
+
   // Public API
   return {
     MIN_LINK_MARGIN,
@@ -600,7 +640,8 @@ const CommsValidator = (() => {
     saveAnalysis,
     getAnalysis,
     deleteAnalysis,
-    downloadReport
+    downloadReport,
+    initPlatformDesignListener
   };
 })();
 

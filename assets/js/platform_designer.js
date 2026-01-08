@@ -64,6 +64,8 @@ const PlatformDesigner = (() => {
     design.modified = new Date().toISOString();
 
     const index = designs.findIndex(d => d.id === design.id);
+    const isNew = index < 0;
+
     if (index >= 0) {
       designs[index] = design;
     } else {
@@ -71,6 +73,16 @@ const PlatformDesigner = (() => {
     }
 
     saveDesigns(designs);
+
+    // Emit event for cross-module propagation
+    if (typeof MissionProjectEvents !== 'undefined') {
+      MissionProjectEvents.emit(MissionProjectEvents.EVENTS.PLATFORM_DESIGN_UPDATED, {
+        design: design,
+        isNew: isNew,
+        allDesigns: designs
+      });
+    }
+
     return design;
   };
 
@@ -89,6 +101,15 @@ const PlatformDesigner = (() => {
     const designs = loadDesigns();
     const filtered = designs.filter(d => d.id !== id);
     saveDesigns(filtered);
+
+    // Emit event for cross-module propagation
+    if (typeof MissionProjectEvents !== 'undefined') {
+      MissionProjectEvents.emit(MissionProjectEvents.EVENTS.PLATFORM_DESIGN_DELETED, {
+        designId: id,
+        allDesigns: filtered
+      });
+    }
+
     return true;
   };
 

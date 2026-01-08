@@ -1566,6 +1566,22 @@ function initExport() {
     exportCoTBtn.addEventListener('click', exportCoT);
   }
 
+  // Doctrinal report export buttons
+  const exportSpotBtn = document.getElementById('exportSpotReport');
+  if (exportSpotBtn) {
+    exportSpotBtn.addEventListener('click', exportSpotReport);
+  }
+
+  const exportSALUTEBtn = document.getElementById('exportSALUTEReport');
+  if (exportSALUTEBtn) {
+    exportSALUTEBtn.addEventListener('click', exportSALUTEReport);
+  }
+
+  const export16LineBtn = document.getElementById('export16LineReport');
+  if (export16LineBtn) {
+    export16LineBtn.addEventListener('click', export16LineReport);
+  }
+
   loadExportSummary();
   loadJSONViewer();
 }
@@ -1746,6 +1762,40 @@ function exportCoT() {
     a.download = `mission_cot_${Date.now()}.xml`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+}
+
+// Doctrinal Report Exports
+function exportSpotReport() {
+  if (typeof MissionProjectStore !== 'undefined' && typeof MissionProjectStore.exportSpotReport === 'function') {
+    try {
+      MissionProjectStore.exportSpotReport();
+    } catch (error) {
+      console.error('Spot Report export failed:', error);
+      alert('Failed to export Spot Report. Ensure mission project has required data.');
+    }
+  }
+}
+
+function exportSALUTEReport() {
+  if (typeof MissionProjectStore !== 'undefined' && typeof MissionProjectStore.exportSALUTEReport === 'function') {
+    try {
+      MissionProjectStore.exportSALUTEReport();
+    } catch (error) {
+      console.error('SALUTE Report export failed:', error);
+      alert('Failed to export SALUTE Report. Ensure mission project has required data.');
+    }
+  }
+}
+
+function export16LineReport() {
+  if (typeof MissionProjectStore !== 'undefined' && typeof MissionProjectStore.export16LineReport === 'function') {
+    try {
+      MissionProjectStore.export16LineReport();
+    } catch (error) {
+      console.error('16-Line Report export failed:', error);
+      alert('Failed to export 16-Line Report. Ensure mission project has required data.');
+    }
   }
 }
 

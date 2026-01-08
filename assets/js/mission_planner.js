@@ -410,6 +410,8 @@ const MissionPlanner = (() => {
     plan.modified = new Date().toISOString();
 
     const index = plans.findIndex(p => p.id === plan.id);
+    const isNew = index < 0;
+
     if (index >= 0) {
       plans[index] = plan;
     } else {
@@ -417,6 +419,16 @@ const MissionPlanner = (() => {
     }
 
     savePlans(plans);
+
+    // Emit event for cross-module propagation
+    if (typeof MissionProjectEvents !== 'undefined') {
+      MissionProjectEvents.emit(MissionProjectEvents.EVENTS.MISSION_PLAN_UPDATED, {
+        plan: plan,
+        isNew: isNew,
+        allPlans: plans
+      });
+    }
+
     return plan;
   };
 
@@ -435,6 +447,15 @@ const MissionPlanner = (() => {
     const plans = loadPlans();
     const filtered = plans.filter(p => p.id !== id);
     savePlans(filtered);
+
+    // Emit event for cross-module propagation
+    if (typeof MissionProjectEvents !== 'undefined') {
+      MissionProjectEvents.emit(MissionProjectEvents.EVENTS.MISSION_PLAN_DELETED, {
+        planId: id,
+        allPlans: filtered
+      });
+    }
+
     return true;
   };
 
@@ -608,6 +629,73 @@ const MissionPlanner = (() => {
     URL.revokeObjectURL(url);
   };
 
+  /**
+   * Auto-update mission plans when platform designs change
+   */
+  const initPlatformDesignListener = () => {
+    if (typeof MissionProjectEvents === 'undefined') return;
+
+    MissionProjectEvents.on(MissionProjectEvents.EVENTS.PLATFORM_DESIGN_UPDATED, (detail) => {
+      // Reload all mission plans and recalculate logistics if they reference updated platforms
+      const plans = loadPlans();
+      const updatedDesign = detail.design;
+
+      plans.forEach(plan => {
+        // Check if this plan uses the updated platform
+        if (plan.platforms && plan.platforms.includes(updatedDesign.id)) {
+          // Recalculate logistics with updated design
+          const allDesigns = typeof PlatformDesigner !== 'undefined'
+            ? PlatformDesigner.loadDesigns()
+            : detail.allDesigns || [];
+
+          const platformDesigns = allDesigns.filter(d => plan.platforms.includes(d.id));
+
+          if (platformDesigns.length > 0) {
+            calculateMissionLogistics(plan, platformDesigns);
+            savePlan(plan);
+
+            console.log(`[MissionPlanner] Auto-updated plan "${plan.name}" due to platform design change`);
+          }
+        }
+      });
+    });
+
+    MissionProjectEvents.on(MissionProjectEvents.EVENTS.PLATFORM_DESIGN_DELETED, (detail) => {
+      // Remove deleted platform from mission plans
+      const plans = loadPlans();
+      const deletedPlatformId = detail.designId;
+
+      plans.forEach(plan => {
+        if (plan.platforms && plan.platforms.includes(deletedPlatformId)) {
+          plan.platforms = plan.platforms.filter(id => id !== deletedPlatformId);
+
+          // Recalculate logistics
+          const allDesigns = typeof PlatformDesigner !== 'undefined'
+            ? PlatformDesigner.loadDesigns()
+            : detail.allDesigns || [];
+
+          const platformDesigns = allDesigns.filter(d => plan.platforms.includes(d.id));
+
+          if (platformDesigns.length > 0) {
+            calculateMissionLogistics(plan, platformDesigns);
+          } else {
+            // No platforms left, clear sustainment
+            plan.sustainment = null;
+            plan.packing_lists = [];
+          }
+
+          savePlan(plan);
+          console.log(`[MissionPlanner] Removed deleted platform from plan "${plan.name}"`);
+        }
+      });
+    });
+  };
+
+  // Initialize listeners on load
+  if (typeof window !== 'undefined') {
+    setTimeout(initPlatformDesignListener, 100); // Wait for MissionProjectEvents to load
+  }
+
   // Public API
   return {
     PHASE_TYPES,
@@ -627,7 +715,8 @@ const MissionPlanner = (() => {
     downloadPackingList,
     downloadPlan,
     generateSummaryReport,
-    downloadSummaryReport
+    downloadSummaryReport,
+    initPlatformDesignListener
   };
 })();
 

@@ -1,9 +1,9 @@
 {
   "offline": {
-    "version": "0.3.0-alpha.2",
+    "version": "0.4.0-alpha.1",
     "stage": "alpha",
-    "released": "2026-01-07",
-    "description": "Offline mission planning tool for air-gapped environments",
+    "released": "2026-01-08",
+    "description": "Offline mission planning tool for air-gapped environments - Digital Construction Foreman",
     "features": {
       "partsLibrary": {
         "status": "stable",
@@ -12,13 +12,13 @@
       },
       "platformDesigner": {
         "status": "beta",
-        "version": "1.0.0",
-        "notes": "Physics validation, environmental derating complete"
+        "version": "1.1.0",
+        "notes": "Physics validation, environmental derating, automatic cross-module propagation"
       },
       "missionPlanner": {
         "status": "beta",
-        "version": "1.0.0",
-        "notes": "Battery calculations, packing lists functional"
+        "version": "1.1.0",
+        "notes": "Battery calculations, packing lists, auto-updates from platform changes"
       },
       "commsValidator": {
         "status": "beta",
@@ -26,9 +26,14 @@
         "notes": "RF link budgets, LOS checks, relay recommendations"
       },
       "export": {
-        "status": "alpha",
-        "version": "0.5.0",
-        "notes": "JSON export works, GeoJSON/CoT stubs only"
+        "status": "beta",
+        "version": "1.0.0",
+        "notes": "JSON/GeoJSON/CoT exports, Spot/SALUTE/16-Line doctrinal reports"
+      },
+      "dataPropagation": {
+        "status": "beta",
+        "version": "1.0.0",
+        "notes": "Event-driven cross-module updates - motor swap auto-updates mission batteries"
       }
     },
     "requirements": {

@@ -15,6 +15,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.0-alpha.1] - 2026-01-08
+
+### Offline Tool
+
+#### Added
+- **Automatic Data Propagation System (CRITICAL FEATURE)**
+  - Created centralized event bus (`mission_project_events.js`) for cross-module communication
+  - Platform Designer changes now automatically trigger Mission Planner recalculations
+  - Motor swap in Platform Designer immediately updates battery requirements and ruck weight
+  - All modules emit and listen for relevant events (platform updates, mission updates, comms updates)
+  - Cross-tab synchronization via localStorage events
+  - Console logging for debugging data propagation flow
+
+- **Doctrinal Reporting (SOF REQUIREMENTS)**
+  - **Spot Report Generator**: 6-line tactical report (Size, Activity, Location, Unit, Time, Equipment)
+  - **SALUTE Report Generator**: Comprehensive situational awareness report with auto-populated fields
+  - **16-Line Incident Report**: MEDEVAC/incident template with mission data pre-filled
+  - All reports auto-extract coordinates, team info, and equipment from MissionProject
+  - Export as formatted text files ready for tactical use
+  - DTG (Date-Time-Group) automatically generated in military format
+
+- **Mission Cards (Stub for Future Enhancement)**
+  - Basic mission card generation from mission phases
+  - JSON export with phase names, durations, and platform assignments
+  - TODO markers for icon library, QR codes, and print-optimized PDF layout
+
+#### Changed
+- **Platform Designer** (v1.0.0 → v1.1.0)
+  - Now emits events when designs are saved or deleted
+  - Automatic validation propagation to dependent modules
+
+- **Mission Planner** (v1.0.0 → v1.1.0)
+  - Automatically recalculates logistics when platform designs change
+  - Listens for platform deletion events and updates mission plans accordingly
+  - Console warnings when platforms are removed from missions
+
+- **Export Module** (v0.5.0-alpha → v1.0.0-beta)
+  - Added three doctrinal report export buttons to UI
+  - Upgraded from alpha to beta status with comprehensive reporting
+
+#### Technical Improvements
+- Event-driven architecture eliminates manual refresh requirements
+- All modules now extend window object for cross-module access
+- MissionProjectStore emits events on save operations
+- Storage event listeners enable multi-tab synchronization
+
+#### Documentation
+- Updated version.json to reflect new features and version bumps
+- Added "Digital Construction Foreman" subtitle to description
+- Documented data propagation system in module notes
+
+---
+
 ## [0.3.0-alpha.2] - 2026-01-07
 
 ### Offline Tool

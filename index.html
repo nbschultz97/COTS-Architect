@@ -368,6 +368,16 @@
         </div>
 
         <div class="card">
+          <h3>Doctrinal Reporting</h3>
+          <p class="small muted">Generate standard military reports derived from mission data. Pre-filled with platform, location, and team information for rapid tactical reporting.</p>
+          <div class="action-row">
+            <button class="btn primary" id="exportSpotReport">Export Spot Report</button>
+            <button class="btn ghost" id="exportSALUTEReport">Export SALUTE Report</button>
+            <button class="btn subtle" id="export16LineReport">Export 16-Line Report</button>
+          </div>
+        </div>
+
+        <div class="card">
           <h3>Mission Project Viewer</h3>
           <textarea id="jsonViewer" class="json-editor" rows="20" readonly></textarea>
         </div>
@@ -384,7 +394,10 @@
     <p class="small">Ceradon Architect — Offline-first mission planning for contested environments</p>
   </footer>
 
-  <!-- Load offline modules first -->
+  <!-- Load event bus first for cross-module communication -->
+  <script src="assets/js/mission_project_events.js"></script>
+
+  <!-- Load offline modules -->
   <script src="assets/js/parts_library.js"></script>
   <script src="assets/js/physics_engine.js"></script>
   <script src="assets/js/platform_designer.js"></script>
