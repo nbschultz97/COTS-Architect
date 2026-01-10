@@ -12,7 +12,7 @@ Ceradon Architect is a professional, offline-first web application for sUAS miss
 
 Maintained by **Noah Schultz (individual)**.
 
-> **Not affiliated with or endorsed by DoD/USG/NPS/SOCPAC/CRUSER.** Demo-only content with example data.
+> **Not affiliated with or endorsed by DoD/USG.** Open-source project with example data.
 
 **Live Demo:** <https://nbschultz97.github.io/Ceradon-Architect/> (GitHub Pages)
 

@@ -29,12 +29,15 @@ function setActiveRoute(route) {
       break;
     case 'platform':
       initPlatformDesigner();
+      restorePlatformDesignerState();
       break;
     case 'mission':
       initMissionPlanner();
+      restoreMissionPlannerState();
       break;
     case 'comms':
       initCommsValidator();
+      restoreCommsValidatorState();
       break;
     case 'map':
       initMapViewer();
@@ -262,6 +265,11 @@ function initPartsLibrary() {
     exportPartsJSON.addEventListener('click', exportPartsLibrary);
   }
 
+  const downloadCSVTemplate = document.getElementById('downloadCSVTemplate');
+  if (downloadCSVTemplate) {
+    downloadCSVTemplate.addEventListener('click', handleDownloadCSVTemplate);
+  }
+
   // Wire up search and filters
   const partsSearch = document.getElementById('partsSearch');
   if (partsSearch) {
@@ -351,6 +359,28 @@ function exportPartsLibrary() {
   }
 }
 
+function handleDownloadCSVTemplate() {
+  if (typeof CSVImporter === 'undefined') {
+    alert('CSV Importer not loaded. Please refresh the page.');
+    return;
+  }
+
+  const categorySelect = document.getElementById('templateCategory');
+  if (!categorySelect) {
+    alert('Template category selector not found.');
+    return;
+  }
+
+  const category = categorySelect.value;
+  try {
+    CSVImporter.downloadTemplate(category);
+    console.log(`Downloaded CSV template for category: ${category}`);
+  } catch (error) {
+    console.error('Failed to download CSV template:', error);
+    alert('Failed to download CSV template. Check console for details.');
+  }
+}
+
 async function loadPartsLibraryUI() {
   if (typeof PartsLibrary === 'undefined') return;
 
@@ -429,14 +459,24 @@ function initPlatformDesigner() {
 
   console.log('Initializing Platform Designer...');
 
-  // Initialize with empty design
-  currentPlatformDesign = PlatformDesigner.createEmptyDesign();
+  // Try to load draft or create empty design
+  const draft = localStorage.getItem('platform_designer_draft');
+  if (draft) {
+    try {
+      currentPlatformDesign = JSON.parse(draft);
+    } catch (e) {
+      currentPlatformDesign = PlatformDesigner.createEmptyDesign();
+    }
+  } else {
+    currentPlatformDesign = PlatformDesigner.createEmptyDesign();
+  }
 
-  // Wire up form inputs
+  // Wire up form inputs with auto-save
   const platformName = document.getElementById('platformName');
   if (platformName) {
-    platformName.addEventListener('change', (e) => {
+    platformName.addEventListener('input', (e) => {
       currentPlatformDesign.name = e.target.value;
+      savePlatformDesignerDraft();
     });
   }
 
@@ -444,20 +484,23 @@ function initPlatformDesigner() {
   if (platformType) {
     platformType.addEventListener('change', (e) => {
       currentPlatformDesign.type = e.target.value;
+      savePlatformDesignerDraft();
     });
   }
 
   const envAltitude = document.getElementById('envAltitude');
   if (envAltitude) {
-    envAltitude.addEventListener('change', (e) => {
-      currentPlatformDesign.environment.altitude_m = parseInt(e.target.value);
+    envAltitude.addEventListener('input', (e) => {
+      currentPlatformDesign.environment.altitude_m = parseInt(e.target.value) || 0;
+      savePlatformDesignerDraft();
     });
   }
 
   const envTemperature = document.getElementById('envTemperature');
   if (envTemperature) {
-    envTemperature.addEventListener('change', (e) => {
-      currentPlatformDesign.environment.temperature_c = parseInt(e.target.value);
+    envTemperature.addEventListener('input', (e) => {
+      currentPlatformDesign.environment.temperature_c = parseInt(e.target.value) || 0;
+      savePlatformDesignerDraft();
     });
   }
 
@@ -477,6 +520,40 @@ function initPlatformDesigner() {
 
   // Load saved designs
   loadSavedPlatforms();
+}
+
+function savePlatformDesignerDraft() {
+  if (currentPlatformDesign) {
+    localStorage.setItem('platform_designer_draft', JSON.stringify(currentPlatformDesign));
+  }
+}
+
+function restorePlatformDesignerState() {
+  if (!currentPlatformDesign) return;
+
+  // Restore form values
+  const platformName = document.getElementById('platformName');
+  if (platformName && currentPlatformDesign.name) {
+    platformName.value = currentPlatformDesign.name;
+  }
+
+  const platformType = document.getElementById('platformType');
+  if (platformType && currentPlatformDesign.type) {
+    platformType.value = currentPlatformDesign.type;
+  }
+
+  const envAltitude = document.getElementById('envAltitude');
+  if (envAltitude && currentPlatformDesign.environment?.altitude_m !== undefined) {
+    envAltitude.value = currentPlatformDesign.environment.altitude_m;
+  }
+
+  const envTemperature = document.getElementById('envTemperature');
+  if (envTemperature && currentPlatformDesign.environment?.temperature_c !== undefined) {
+    envTemperature.value = currentPlatformDesign.environment.temperature_c;
+  }
+
+  // Refresh component selection display
+  updateComponentSelectionDisplay();
 }
 
 async function loadComponentSelectors() {
@@ -1031,6 +1108,29 @@ function initMissionPlanner() {
   renderPhaseEditor();
 }
 
+function restoreMissionPlannerState() {
+  if (!currentMissionPlan) return;
+
+  // Restore form values
+  const missionName = document.getElementById('missionName');
+  if (missionName && currentMissionPlan.name) {
+    missionName.value = currentMissionPlan.name;
+  }
+
+  const missionDuration = document.getElementById('missionDuration');
+  if (missionDuration && currentMissionPlan.duration_hours) {
+    missionDuration.value = currentMissionPlan.duration_hours;
+  }
+
+  const missionTerrain = document.getElementById('missionTerrain');
+  if (missionTerrain && currentMissionPlan.terrain) {
+    missionTerrain.value = currentMissionPlan.terrain;
+  }
+
+  // Refresh phase display
+  renderPhaseEditor();
+}
+
 function renderPhaseEditor() {
   const container = document.getElementById('phasesEditor');
   if (!container || !currentMissionPlan) return;
@@ -1291,6 +1391,24 @@ function initCommsValidator() {
   }
 
   // Initial render
+  renderNodesEditor();
+}
+
+function restoreCommsValidatorState() {
+  if (!currentCommsAnalysis) return;
+
+  // Restore form values
+  const commsTerrain = document.getElementById('commsTerrain');
+  if (commsTerrain && currentCommsAnalysis.terrain) {
+    commsTerrain.value = currentCommsAnalysis.terrain;
+  }
+
+  const commsWeather = document.getElementById('commsWeather');
+  if (commsWeather && currentCommsAnalysis.weather) {
+    commsWeather.value = currentCommsAnalysis.weather;
+  }
+
+  // Refresh nodes display
   renderNodesEditor();
 }
 
