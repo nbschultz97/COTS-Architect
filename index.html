@@ -37,12 +37,12 @@
     <span class="pill subtle" id="schemaHeaderBadge" data-schema-version></span>
   </div>
 
-  <!-- Demo Site Notice -->
-  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 24px; text-align: center; border-bottom: 2px solid #5568d3;">
+  <!-- Air-Gapped Version Notice -->
+  <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 12px 24px; text-align: center; border-bottom: 2px solid #047857;">
     <p style="margin: 0; font-size: 14px; font-weight: 500;">
-      🌐 <strong>ONLINE DEMO</strong> — Maintained by Noah Schultz (individual).
-      <span style="opacity: 0.9;">Not affiliated with or endorsed by DoD/USG/NPS/SOCPAC/CRUSER.</span>
-      <a href="#demo-disclaimer" style="color: #fff; text-decoration: underline; margin-left: 12px; font-weight: 600;">Details →</a>
+      🔒 <strong>OFFLINE AIR-GAPPED VERSION</strong> — All data stored locally. Zero external dependencies.
+      <span style="opacity: 0.9;">Maintained by Noah Schultz (individual).</span>
+      <a href="#offline-notice" style="color: #fff; text-decoration: underline; margin-left: 12px; font-weight: 600;">Details →</a>
     </p>
   </div>
 
@@ -225,6 +225,22 @@
             <button class="btn subtle" id="exportPartsJSON">Export as JSON</button>
             <input type="file" id="csvFileInput" accept=".csv" hidden>
           </div>
+          <div class="action-row" style="margin-top: 12px;">
+            <label style="flex: 1;">CSV Template Category
+              <select id="templateCategory">
+                <option value="airframes">Airframes</option>
+                <option value="motors">Motors</option>
+                <option value="escs">ESCs</option>
+                <option value="batteries">Batteries</option>
+                <option value="flight_controllers">Flight Controllers</option>
+                <option value="radios">Radios</option>
+                <option value="sensors">Sensors</option>
+                <option value="accessories">Accessories</option>
+              </select>
+            </label>
+            <button class="btn ghost" id="downloadCSVTemplate" style="margin-top: 20px;">Download CSV Template</button>
+          </div>
+          <p class="small muted">Download a CSV template to see required fields for each part category. If you have an XML parts list, convert it to CSV format matching the template columns. See the <a href="docs/CSV_IMPORT_GUIDE.md" target="_blank" style="color: #667eea; text-decoration: underline;">CSV Import Guide</a> for detailed instructions.</p>
           <p class="small muted" id="partsLibraryStatus">No parts loaded. Import a CSV or load sample catalog.</p>
         </div>
 
@@ -571,12 +587,12 @@
       </div>
 
       <!-- Disclaimer -->
-      <div id="demo-disclaimer" style="border-top: 1px solid var(--border); padding-top: 20px; margin-top: 20px;">
+      <div id="offline-notice" style="border-top: 1px solid var(--border); padding-top: 20px; margin-top: 20px;">
         <p style="margin: 0 0 12px 0; font-size: 13px; color: var(--text-muted); line-height: 1.6;">
-          <strong>Online Demo Disclaimer:</strong> This website demonstrates Ceradon Architect features but requires internet connectivity (Leaflet.js CDN, OpenStreetMap tiles). Production deployments bundle all assets locally for true offline operation. No sensitive data should be entered into this public demo.
+          <strong>Air-Gapped Offline Version:</strong> This is the production offline version of Ceradon Architect. All data is stored locally in your browser (localStorage/IndexedDB). No data is transmitted to external servers. For complete air-gap operation, bundle Leaflet.js and map tiles locally.
         </p>
         <p style="margin: 0; font-size: 12px; color: var(--text-muted); line-height: 1.6;">
-          Maintained by Noah Schultz (individual). Not affiliated with or endorsed by DoD/USG/NPS/SOCPAC/CRUSER. Open-source demo with example data only. No agency relationship implied.
+          Maintained by Noah Schultz (individual). Open-source mission planning tool. Not affiliated with or endorsed by DoD/USG.
         </p>
       </div>
     </div>
