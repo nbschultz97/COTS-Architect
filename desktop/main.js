@@ -74,7 +74,7 @@ const createWindow = () => {
 
   window.once('ready-to-show', () => window.show());
 
-  if (process.env.COTS_DEBUG === '1' || process.env.CERADON_DEBUG === '1') {
+  if (process.env.COTS_DEBUG === '1') {
     window.webContents.openDevTools({ mode: 'detach' });
   }
 

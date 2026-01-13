@@ -33,7 +33,7 @@
 
   <div class="version-strip" aria-label="Application version and status">
     <span class="pill" id="appVersionBadge" data-app-version></span>
-    <span class="pill success">Offline Ready</span>
+    <span class="pill warning" style="background: #ff9800; color: #000;">ONLINE DEMO - NOT FOR PRODUCTION</span>
     <span class="pill subtle" id="schemaHeaderBadge" data-schema-version></span>
   </div>
 
@@ -87,6 +87,17 @@
           <div class="hero-actions">
             <a class="btn primary" href="#/library">Start with Parts Library</a>
             <button class="btn ghost" id="loadSampleMission">Load Sample Mission</button>
+          </div>
+          <div id="desktopDownloadCTA" style="margin-top: 16px; padding: 16px; background: linear-gradient(135deg, #667eea22 0%, #764ba222 100%); border: 2px solid #667eea; border-radius: 8px; text-align: center;">
+            <p style="margin: 0 0 12px 0; font-weight: 600; color: var(--accent);">
+              💻 Looking for the Production Desktop App?
+            </p>
+            <p class="small" style="margin: 0 0 12px 0;">
+              This online demo requires internet. For air-gapped operation with auto-save sessions, build the desktop installer.
+            </p>
+            <a class="btn primary" href="https://github.com/nbschultz97/COTS-Architect#desktop-app-windows" target="_blank" style="text-decoration: none;">
+              📥 Get Desktop Version (Windows)
+            </a>
           </div>
           <p class="small muted">All data stays local. Export mission packages as JSON. Works in air-gapped environments.</p>
         </div>
@@ -192,7 +203,7 @@
         <div class="card">
           <h3>Import / Export</h3>
           <div class="action-row">
-            <button class="btn primary" id="importCSV">Import CSV Inventory</button>
+            <button class="btn primary" id="importCSV">📥 Import Multi-Category CSV</button>
             <button class="btn ghost" id="loadSampleParts">Load Sample Catalog</button>
             <button class="btn subtle" id="exportPartsJSON">Export as JSON</button>
             <input type="file" id="csvFileInput" accept=".csv" hidden>
@@ -200,6 +211,7 @@
           <div class="action-row" style="margin-top: 12px;">
             <label style="flex: 1;">CSV Template Category
               <select id="templateCategory">
+                <option value="multi">🆕 Multi-Category Template (All Types in One File)</option>
                 <option value="airframes">Airframes</option>
                 <option value="motors">Motors</option>
                 <option value="escs">ESCs</option>
@@ -212,7 +224,11 @@
             </label>
             <button class="btn ghost" id="downloadCSVTemplate" style="margin-top: 20px;">Download CSV Template</button>
           </div>
-          <p class="small muted">Download a CSV template to see required fields for each part category. If you have an XML parts list, convert it to CSV format matching the template columns. See the <a href="docs/CSV_IMPORT_GUIDE.md" target="_blank" style="color: #667eea; text-decoration: underline;">CSV Import Guide</a> for detailed instructions.</p>
+          <p class="small muted" style="margin-top: 12px;">
+            <strong>📌 New:</strong> Import your entire unit inventory from ONE CSV file! Add a "category" column (airframe, motor, battery, etc.) and the system automatically distributes parts.
+            <a href="docs/MULTI_SHEET_IMPORT_GUIDE.md" target="_blank" style="color: #667eea; text-decoration: underline;">Multi-Sheet Import Guide</a> |
+            <a href="docs/CSV_IMPORT_GUIDE.md" target="_blank" style="color: #667eea; text-decoration: underline;">CSV Import Guide</a>
+          </p>
           <p class="small muted" id="partsLibraryStatus">No parts loaded. Import a CSV or load sample catalog.</p>
         </div>
 
@@ -620,19 +636,19 @@
           <h4 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600;">Resources</h4>
           <ul style="list-style: none; padding: 0; margin: 0; font-size: 14px;">
             <li style="margin-bottom: 8px;">
-              <a href="https://github.com/nbschultz97/Ceradon-Architect" target="_blank" style="color: var(--text-muted); text-decoration: none;">GitHub Repository</a>
+              <a href="https://github.com/nbschultz97/COTS-Architect" target="_blank" style="color: var(--text-muted); text-decoration: none;">GitHub Repository</a>
             </li>
             <li style="margin-bottom: 8px;">
-              <a href="https://github.com/nbschultz97/Ceradon-Architect/blob/main/CHANGELOG.md" target="_blank" style="color: var(--text-muted); text-decoration: none;">📋 Changelog & Updates</a>
+              <a href="https://github.com/nbschultz97/COTS-Architect/blob/main/CHANGELOG.md" target="_blank" style="color: var(--text-muted); text-decoration: none;">📋 Changelog & Updates</a>
             </li>
             <li style="margin-bottom: 8px;">
-              <a href="https://github.com/nbschultz97/Ceradon-Architect/blob/main/docs/v0.3_offline_gis_almanac.md" target="_blank" style="color: var(--text-muted); text-decoration: none;">Documentation</a>
+              <a href="https://github.com/nbschultz97/COTS-Architect/blob/main/docs/v0.3_offline_gis_almanac.md" target="_blank" style="color: var(--text-muted); text-decoration: none;">Documentation</a>
             </li>
             <li style="margin-bottom: 8px;">
-              <a href="https://github.com/nbschultz97/Ceradon-Architect/blob/main/SECURITY_AUDIT_v0.3.md" target="_blank" style="color: var(--text-muted); text-decoration: none;">Security Audit</a>
+              <a href="https://github.com/nbschultz97/COTS-Architect/blob/main/SECURITY_AUDIT_v0.3.md" target="_blank" style="color: var(--text-muted); text-decoration: none;">Security Audit</a>
             </li>
             <li style="margin-bottom: 8px;">
-              <a href="https://github.com/nbschultz97/Ceradon-Architect/issues" target="_blank" style="color: var(--text-muted); text-decoration: none;">Report Issues</a>
+              <a href="https://github.com/nbschultz97/COTS-Architect/issues" target="_blank" style="color: var(--text-muted); text-decoration: none;">Report Issues</a>
             </li>
           </ul>
         </div>
@@ -653,8 +669,14 @@
 
       <!-- Disclaimer -->
       <div id="offline-notice" style="border-top: 1px solid var(--border); padding-top: 20px; margin-top: 20px;">
+        <p style="margin: 0 0 12px 0; font-size: 14px; color: #ff9800; font-weight: 600; line-height: 1.6;">
+          ⚠️ <strong>ONLINE DEMONSTRATION ONLY - NOT FOR PRODUCTION USE</strong>
+        </p>
         <p style="margin: 0 0 12px 0; font-size: 13px; color: var(--text-muted); line-height: 1.6;">
-          <strong>Offline-First Architecture:</strong> All data is stored locally in your browser (localStorage/IndexedDB). No data is transmitted to external servers. For complete air-gap operation, you can bundle Leaflet.js and map tiles locally.
+          This GitHub Pages site is for <strong>evaluation and testing only</strong>. For production use, download and install the desktop application which provides full offline operation with zero internet dependencies. Do not use this online demo for operational planning or sensitive data.
+        </p>
+        <p style="margin: 0 0 12px 0; font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+          <strong>Production Deployment:</strong> Build the Windows desktop installer with <code>npm run desktop:dist</code>. The desktop app auto-saves sessions locally and works completely air-gapped. See README for deployment instructions.
         </p>
         <p style="margin: 0; font-size: 12px; color: var(--text-muted); line-height: 1.6;">
           Maintained by Noah Schultz (individual). Open-source mission planning tool. Not affiliated with or endorsed by DoD/USG.
