@@ -452,8 +452,9 @@ const PartsLibrary = (() => {
 
     // Basic validation - check required fields based on category
     // Note: id and weight_g are optional (id is auto-generated, weight_g may not be known)
+    // Customer inventories typically only have name and quantity - all specs are optional
     const requiredFields = {
-      airframes: ['name', 'type'],
+      airframes: ['name'],
       motors: ['name'],
       escs: ['name'],
       batteries: ['name'],
