@@ -438,6 +438,216 @@ const CSVImporter = (() => {
     URL.revokeObjectURL(url);
   };
 
+  /**
+   * Normalize category name (handle singular/plural, common aliases)
+   */
+  const normalizeCategory = (categoryStr) => {
+    const normalized = categoryStr.toLowerCase().trim();
+
+    const categoryMap = {
+      'airframe': 'airframes',
+      'airframes': 'airframes',
+      'motor': 'motors',
+      'motors': 'motors',
+      'esc': 'escs',
+      'escs': 'escs',
+      'battery': 'batteries',
+      'batteries': 'batteries',
+      'flight_controller': 'flight_controllers',
+      'flight_controllers': 'flight_controllers',
+      'fc': 'flight_controllers',
+      'radio': 'radios',
+      'radios': 'radios',
+      'sensor': 'sensors',
+      'sensors': 'sensors',
+      'accessory': 'accessories',
+      'accessories': 'accessories'
+    };
+
+    return categoryMap[normalized] || null;
+  };
+
+  /**
+   * Import multi-category CSV (single file with category column)
+   */
+  const importMultiCategoryCSV = async (csvText, options = {}) => {
+    const { skipValidation = false, mode = 'append' } = options;
+
+    try {
+      // Parse CSV
+      const { headers, rows } = parseCSV(csvText);
+
+      if (rows.length === 0) {
+        throw new Error('No data rows found in CSV');
+      }
+
+      // Check for category column
+      const categoryColumn = headers.find(h =>
+        ['category', 'type', 'part_type', 'item_type'].includes(h.toLowerCase())
+      );
+
+      if (!categoryColumn) {
+        throw new Error('Multi-category import requires a "category" column. Add a column with part types: airframe, motor, battery, etc.');
+      }
+
+      // Group rows by category
+      const rowsByCategory = {};
+      const invalidCategories = [];
+
+      rows.forEach((row, idx) => {
+        const categoryValue = row[categoryColumn];
+        if (!categoryValue) {
+          invalidCategories.push({ rowIndex: idx + 2, row, error: 'Missing category value' });
+          return;
+        }
+
+        const category = normalizeCategory(categoryValue);
+        if (!category) {
+          invalidCategories.push({ rowIndex: idx + 2, row, error: `Unknown category: ${categoryValue}` });
+          return;
+        }
+
+        if (!rowsByCategory[category]) {
+          rowsByCategory[category] = [];
+        }
+        rowsByCategory[category].push(row);
+      });
+
+      // Import each category
+      const results = {
+        success: true,
+        categories: {},
+        totalImported: 0,
+        totalFailed: invalidCategories.length,
+        invalidCategories
+      };
+
+      for (const [category, categoryRows] of Object.entries(rowsByCategory)) {
+        // Auto-detect mappings for this category
+        const mappings = autoDetectMappings(headers, category);
+
+        // Apply mappings and type conversion
+        const mappedRows = applyMappings(categoryRows, mappings);
+        const convertedRows = mappedRows.map(convertTypes);
+
+        // Validate rows
+        let validation = { valid: convertedRows.map((data, idx) => ({ rowIndex: idx + 2, data })), invalid: [] };
+        if (!skipValidation) {
+          validation = validateRows(convertedRows, category);
+        }
+
+        // Import valid rows
+        if (mode === 'replace') {
+          await PartsLibrary.clearCategory(category);
+        }
+
+        const importedParts = [];
+        for (const validRow of validation.valid) {
+          try {
+            const part = await PartsLibrary.addPart(category, validRow.data);
+            importedParts.push(part);
+          } catch (error) {
+            validation.invalid.push({
+              rowIndex: validRow.rowIndex,
+              data: validRow.data,
+              errors: [error.message]
+            });
+          }
+        }
+
+        results.categories[category] = {
+          imported: importedParts.length,
+          failed: validation.invalid.length,
+          invalidRows: validation.invalid
+        };
+
+        results.totalImported += importedParts.length;
+        results.totalFailed += validation.invalid.length;
+      }
+
+      return results;
+
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+        totalImported: 0,
+        totalFailed: 0,
+        categories: {}
+      };
+    }
+  };
+
+  /**
+   * Import multi-category from file
+   */
+  const importMultiCategoryFromFile = async (file, options = {}) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = async (event) => {
+        try {
+          const text = event.target.result;
+          const result = await importMultiCategoryCSV(text, options);
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        }
+      };
+
+      reader.onerror = () => reject(reader.error);
+      reader.readAsText(file);
+    });
+  };
+
+  /**
+   * Extract specs from part name (smart parsing for minimal data)
+   */
+  const extractSpecsFromName = (name, category) => {
+    const specs = {};
+    const nameLower = name.toLowerCase();
+
+    // Extract common patterns
+
+    // Motor KV
+    const kvMatch = name.match(/(\d+)kv/i);
+    if (kvMatch && category === 'motors') {
+      specs.kv = parseInt(kvMatch[1]);
+    }
+
+    // Battery cells (e.g., "4S", "6S")
+    const cellsMatch = name.match(/(\d+)s/i);
+    if (cellsMatch && category === 'batteries') {
+      specs.cells = parseInt(cellsMatch[1]);
+    }
+
+    // Battery capacity (e.g., "1300mAh", "5000mah")
+    const capacityMatch = name.match(/(\d+)\s*mah/i);
+    if (capacityMatch && category === 'batteries') {
+      specs.capacity_mah = parseInt(capacityMatch[1]);
+    }
+
+    // Weight (e.g., "95g", "31 grams")
+    const weightMatch = name.match(/(\d+\.?\d*)\s*(g|grams?)\b/i);
+    if (weightMatch) {
+      specs.weight_g = parseFloat(weightMatch[1]);
+    }
+
+    // Motor size (e.g., "2207", "2306")
+    const motorSizeMatch = name.match(/(\d{4})/);
+    if (motorSizeMatch && category === 'motors') {
+      specs.size = motorSizeMatch[1];
+    }
+
+    // Frame size (e.g., "5\"", "7 inch")
+    const frameSizeMatch = name.match(/(\d+)\s*("|inch|in)/i);
+    if (frameSizeMatch && category === 'airframes') {
+      specs.size_inch = parseInt(frameSizeMatch[1]);
+    }
+
+    return specs;
+  };
+
   // Public API
   return {
     parseCSV,
@@ -447,6 +657,10 @@ const CSVImporter = (() => {
     validateRows,
     importFromCSV,
     importFromFile,
+    importMultiCategoryCSV,
+    importMultiCategoryFromFile,
+    extractSpecsFromName,
+    normalizeCategory,
     generateTemplate,
     downloadTemplate,
     exportToCSV,

@@ -317,38 +317,64 @@ function initPartsLibrary() {
   }
 }
 
-function handleCSVImport(event) {
+async function handleCSVImport(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const csvText = e.target.result;
+  if (typeof CSVImporter === 'undefined' || typeof PartsLibrary === 'undefined') {
+    alert('CSV Importer or Parts Library not loaded. Please refresh the page.');
+    return;
+  }
 
-    if (typeof CSVImporter !== 'undefined') {
-      try {
-        const parts = CSVImporter.parseCSV(csvText);
-        console.log(`Parsed ${parts.length} parts from CSV`);
+  try {
+    updatePartsStatus('Importing CSV...');
 
-        // Import into PartsLibrary
-        if (typeof PartsLibrary !== 'undefined') {
-          Promise.all(parts.map(part => PartsLibrary.addPart(part.category || 'accessories', part)))
-            .then(() => {
-              alert(`Imported ${parts.length} parts successfully!`);
-              loadPartsLibraryUI();
-            })
-            .catch(error => {
-              console.error('Failed to import parts:', error);
-              alert('Failed to import some parts. Check console for details.');
-            });
+    // Try multi-category import first
+    const result = await CSVImporter.importMultiCategoryFromFile(file);
+
+    if (result.success) {
+      // Display detailed results
+      let message = `✅ Successfully imported ${result.totalImported} parts!\n\n`;
+      message += 'Distribution by category:\n';
+
+      Object.entries(result.categories).forEach(([category, stats]) => {
+        message += `• ${category}: ${stats.imported} parts`;
+        if (stats.failed > 0) {
+          message += ` (${stats.failed} failed)`;
         }
-      } catch (error) {
-        console.error('Failed to parse CSV:', error);
-        alert('Failed to parse CSV file. Check format and try again.');
+        message += '\n';
+      });
+
+      if (result.totalFailed > 0) {
+        message += `\n⚠️ ${result.totalFailed} rows had issues (check console for details)`;
+        console.warn('Import warnings:', result);
       }
+
+      alert(message);
+      await loadPartsLibraryUI();
+      updatePartsStatus(`Imported ${result.totalImported} parts from ${Object.keys(result.categories).length} categories`);
+    } else if (result.error && result.error.includes('category')) {
+      // No category column found - show helpful message
+      alert(
+        '⚠️ Multi-Category Import Failed\n\n' +
+        'Your CSV needs a "category" column to import all parts at once.\n\n' +
+        'Add a column named "category" with values like:\n' +
+        '• airframe\n• motor\n• battery\n• esc\n• radio\n\n' +
+        'Or download the Multi-Category Template for an example.\n\n' +
+        'See the Multi-Sheet Import Guide for more details.'
+      );
+      updatePartsStatus('Import failed - missing category column');
+    } else {
+      throw new Error(result.error || 'Unknown import error');
     }
-  };
-  reader.readAsText(file);
+  } catch (error) {
+    console.error('Failed to import CSV:', error);
+    alert(`Failed to import CSV:\n\n${error.message}\n\nCheck the console for more details.`);
+    updatePartsStatus('Import failed');
+  }
+
+  // Reset file input
+  event.target.value = '';
 }
 
 async function loadSamplePartsLibrary() {
@@ -407,9 +433,33 @@ function handleDownloadCSVTemplate() {
   }
 
   const category = categorySelect.value;
+
   try {
-    CSVImporter.downloadTemplate(category);
-    console.log(`Downloaded CSV template for category: ${category}`);
+    if (category === 'multi') {
+      // Generate multi-category template
+      const template = 'category,name,manufacturer,part_number,quantity,weight_g,cost_usd,link,notes\n' +
+        'airframe,5" Racing Frame,GEPRC,GEP-MK4,2,95,45,https://example.com/frame,Carbon fiber frame\n' +
+        'motor,2207 1750KV,T-Motor,F60-PRO-IV,8,31,25,https://example.com/motor,4S compatible\n' +
+        'battery,4S 1300mAh,CNHL,MiniStar-4S-1300,10,165,22,https://example.com/battery,100C discharge\n' +
+        'esc,35A BLHeli_32,Tekko32,F3-35A,4,5,18,https://example.com/esc,DShot1200 support\n' +
+        'flight_controller,F7 FC,Holybro,Kakute-F7,2,8,55,https://example.com/fc,8K gyro loop\n' +
+        'radio,ELRS 915MHz,ExpressLRS,EP2-915,2,3,25,https://example.com/radio,1W output power\n' +
+        'sensor,FPV Camera,Caddx,Ratel-2,2,5,35,https://example.com/camera,1200TVL\n' +
+        'accessory,XT60 Connectors,Amass,XT60-10PK,1,20,8,https://example.com/connectors,10-pack';
+
+      const blob = new Blob([template], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'multi_category_inventory_template.csv';
+      link.click();
+      URL.revokeObjectURL(url);
+
+      console.log('Downloaded multi-category CSV template');
+    } else {
+      CSVImporter.downloadTemplate(category);
+      console.log(`Downloaded CSV template for category: ${category}`);
+    }
   } catch (error) {
     console.error('Failed to download CSV template:', error);
     alert('Failed to download CSV template. Check console for details.');
@@ -2800,6 +2850,30 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('COTS Architect initializing...');
 
   migrateLegacyStorage();
+
+  // Hide demo banner and CTAs if running in Electron (desktop app)
+  const isElectron = navigator.userAgent.toLowerCase().includes('electron');
+  if (isElectron) {
+    const demoBanner = document.querySelector('.version-strip .pill.warning');
+    if (demoBanner) {
+      demoBanner.style.display = 'none';
+    }
+    const desktopCTA = document.getElementById('desktopDownloadCTA');
+    if (desktopCTA) {
+      desktopCTA.style.display = 'none';
+    }
+    const demoNotice = document.getElementById('offline-notice');
+    if (demoNotice) {
+      demoNotice.innerHTML = `
+        <p style="margin: 0 0 12px 0; font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+          <strong>Desktop Application:</strong> All data is stored locally on your computer. Session files are auto-saved to <code>%USERPROFILE%\\Documents\\COTS-Architect\\Sessions\\</code>
+        </p>
+        <p style="margin: 0; font-size: 12px; color: var(--text-muted); line-height: 1.6;">
+          Maintained by Noah Schultz (individual). Open-source mission planning tool. Not affiliated with or endorsed by DoD/USG.
+        </p>
+      `;
+    }
+  }
 
   initThemeToggle();
   initVersionBadges();

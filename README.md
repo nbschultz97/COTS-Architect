@@ -14,7 +14,7 @@ Maintained by **Noah Schultz (individual)**.
 
 > **Not affiliated with or endorsed by DoD/USG.** Open-source project with example data.
 
-**Live Demo:** <https://nbschultz97.github.io/Ceradon-Architect/> (GitHub Pages)
+**Online Demo:** <https://nbschultz97.github.io/COTS-Architect/> *(Demonstration only - not for production use)*
 
 > **✅ v0.4.0-alpha.2** - Offline GIS, historical weather almanac, and enhanced cold-weather derating. See [v0.3_offline_gis_almanac.md](docs/v0.3_offline_gis_almanac.md) for full documentation.
 
@@ -129,18 +129,23 @@ Navigate with hash routes:
 - `#/map` - **NEW** Map Viewer (GIS, location picker, environmental almanac)
 - `#/export` - Export mission packages (JSON, GeoJSON, CoT)
 
-### Demo Site vs Production Deployment
+### Online Demo vs Production Deployment
 
-**GitHub Pages Demo** ([nbschultz97.github.io/Ceradon-Architect](https://nbschultz97.github.io/Ceradon-Architect/)):
-- ✅ All features functional online
+**GitHub Pages Demo** ([nbschultz97.github.io/COTS-Architect](https://nbschultz97.github.io/COTS-Architect/)):
+- ⚠️ **DEMONSTRATION ONLY - NOT FOR PRODUCTION USE**
+- ✅ All features functional for testing and evaluation
 - ✅ Map viewer, environmental almanac, and SRTM elevation work
-- ⚠️ Leaflet loads from CDN (requires internet for first load)
-- ⚠️ Map tiles load from OpenStreetMap (requires internet)
+- ⚠️ Requires internet connection (Leaflet loads from CDN, map tiles from OpenStreetMap)
+- ⚠️ Do not use for operational planning or sensitive data
 
-**Production Air-Gap Deployment:**
-- For true offline operation, bundle Leaflet locally and pre-cache map tiles
+**Production Air-Gap Deployment (Desktop Installer):**
+- ✅ **This is the intended production deployment method**
+- ✅ Full offline operation - no internet required after installation
+- ✅ Auto-saves session files to local disk
+- ✅ Bundle Leaflet locally and pre-cache map tiles for your AO
 - See [docs/v0.3_offline_gis_almanac.md](docs/v0.3_offline_gis_almanac.md) for air-gap deployment instructions
 - SRTM tiles can be loaded manually for your area of operations
+- Build the Windows installer with `npm run desktop:dist`
 
 ## Application Structure
 
@@ -563,7 +568,7 @@ The site is fully static and GitHub Pages-compatible:
 1. In GitHub repo settings, open **Pages**.
 2. Set **Source** to `Deploy from a branch`.
 3. Select the `main` branch and `/ (root)` folder.
-4. Save and use the published URL: `https://nbschultz97.github.io/Ceradon-Architect/`.
+4. Save and use the published URL: `https://nbschultz97.github.io/COTS-Architect/`.
 
 ---
 

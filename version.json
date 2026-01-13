@@ -58,7 +58,7 @@
     "stage": "alpha",
     "released": "2026-01-09",
     "description": "Interactive web demo mirroring offline tool functionality",
-    "url": "https://nbschultz97.github.io/Ceradon-Architect/",
+    "url": "https://nbschultz97.github.io/COTS-Architect/",
     "purpose": "Public demo only; always mirrors offline version",
     "syncedWith": "offline:0.4.0-alpha.2",
     "features": {
@@ -97,7 +97,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/nbschultz97/Ceradon-Architect"
+    "url": "https://github.com/nbschultz97/COTS-Architect"
   },
   "changelog": "CHANGELOG.md"
 }
