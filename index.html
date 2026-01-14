@@ -205,6 +205,11 @@
       <div class="tool-panel">
         <div class="card">
           <h3>Import / Export</h3>
+          <div id="csvDropZone" style="border: 2px dashed #667eea; border-radius: 8px; padding: 24px; text-align: center; margin-bottom: 16px; cursor: pointer; transition: all 0.3s; background: rgba(102, 126, 234, 0.05);">
+            <p style="font-size: 36px; margin: 0;">📁</p>
+            <p style="margin: 8px 0;"><strong>Drag & Drop CSV File Here</strong></p>
+            <p class="small muted">or click below to browse</p>
+          </div>
           <div class="action-row">
             <button class="btn primary" id="importCSV">📥 Import CSV</button>
             <button class="btn ghost" id="loadSampleParts">Load Sample Catalog</button>
@@ -243,9 +248,35 @@
 
         <div class="card">
           <h3>Parts Catalog</h3>
+          <div style="margin-bottom: 16px;">
+            <input type="text" id="partsSearchInput" placeholder="🔍 Search parts by name, manufacturer, or category..." style="width: 100%; margin-bottom: 12px;">
+            <div class="form-grid" style="margin-bottom: 12px;">
+              <label>Filter by Category
+                <select id="partsCategoryFilter">
+                  <option value="">All Categories</option>
+                  <option value="airframes">Airframes</option>
+                  <option value="motors">Motors</option>
+                  <option value="escs">ESCs</option>
+                  <option value="batteries">Batteries</option>
+                  <option value="flight_controllers">Flight Controllers</option>
+                  <option value="radios">Radios</option>
+                  <option value="sensors">Sensors</option>
+                  <option value="accessories">Accessories</option>
+                </select>
+              </label>
+              <label>Sort By
+                <select id="partsSortBy">
+                  <option value="name">Name (A-Z)</option>
+                  <option value="weight">Weight (Low-High)</option>
+                  <option value="cost">Cost (Low-High)</option>
+                  <option value="quantity">Quantity (High-Low)</option>
+                </select>
+              </label>
+            </div>
+          </div>
           <div class="action-row" style="margin-bottom: 16px;">
             <button class="btn primary" id="addNewPart">➕ Add New Part</button>
-            <button class="btn ghost" id="bulkEditParts" disabled>Bulk Edit (Coming Soon)</button>
+            <button class="btn danger" id="deleteEntireInventory">🗑️ Delete Entire Inventory</button>
           </div>
           <div id="partsGrid" class="parts-grid">
             <p class="small muted">No parts to display. Import or load sample catalog.</p>
@@ -418,6 +449,19 @@
           <div class="action-row">
             <button class="btn primary" id="validatePlatform">Validate Design</button>
             <button class="btn ghost" id="savePlatform">Save Platform</button>
+            <button class="btn ghost" id="clearPlatform">Clear Design</button>
+            <button class="btn primary" id="autoBuildPlatform">🤖 Auto-Build from Inventory</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Saved Platforms</h3>
+          <p class="small muted">Load previously saved platform designs</p>
+          <div id="savedPlatformsList" style="margin-top: 12px;"></div>
+          <div class="action-row" style="margin-top: 12px;">
+            <button class="btn ghost" id="exportPlatformPDF">📄 Export PDF</button>
+            <button class="btn ghost" id="exportPlatformExcel">📊 Export Excel</button>
+            <button class="btn ghost" id="comparePlatforms">⚖️ Compare Designs</button>
           </div>
         </div>
 
@@ -550,9 +594,25 @@
         </div>
 
         <div class="card">
+          <h3>Node Placement Map</h3>
+          <p class="small muted">Click on the map to place nodes (GCS, UAV, Relay). Visualize coverage and line-of-sight.</p>
+          <div id="commsMapContainer" style="height: 400px; width: 100%; margin-top: 12px; border-radius: 8px; overflow: hidden; background: #1a1f2e; position: relative;">
+            <canvas id="commsMapCanvas" style="width: 100%; height: 100%; cursor: crosshair;"></canvas>
+            <div style="position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 8px; border-radius: 4px; font-size: 11px;">
+              <div style="color: #4ade80; margin-bottom: 4px;">🟢 GCS (Ground Control Station)</div>
+              <div style="color: #60a5fa; margin-bottom: 4px;">🔵 UAV (Unmanned Aerial Vehicle)</div>
+              <div style="color: #fbbf24;">🟡 Relay (Communication Relay)</div>
+            </div>
+          </div>
+          <div class="action-row" style="margin-top: 12px;">
+            <button class="btn subtle" id="addNodeManual">➕ Add Node Manually</button>
+            <button class="btn ghost" id="clearNodes">Clear All Nodes</button>
+          </div>
+        </div>
+
+        <div class="card">
           <h3>Nodes</h3>
           <div id="nodesEditor"></div>
-          <button class="btn subtle" id="addNode">+ Add Node</button>
         </div>
 
         <div class="card">

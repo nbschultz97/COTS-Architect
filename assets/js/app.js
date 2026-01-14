@@ -306,14 +306,50 @@ function initPartsLibrary() {
   }
 
   // Wire up search and filters
-  const partsSearch = document.getElementById('partsSearch');
-  if (partsSearch) {
-    partsSearch.addEventListener('input', filterParts);
+  const partsSearchInput = document.getElementById('partsSearchInput');
+  if (partsSearchInput) {
+    partsSearchInput.addEventListener('input', filterAndSortParts);
   }
 
   const partsCategoryFilter = document.getElementById('partsCategoryFilter');
   if (partsCategoryFilter) {
-    partsCategoryFilter.addEventListener('change', filterParts);
+    partsCategoryFilter.addEventListener('change', filterAndSortParts);
+  }
+
+  const partsSortBy = document.getElementById('partsSortBy');
+  if (partsSortBy) {
+    partsSortBy.addEventListener('change', filterAndSortParts);
+  }
+
+  // Drag and drop for CSV import
+  const dropZone = document.getElementById('csvDropZone');
+  if (dropZone) {
+    dropZone.addEventListener('click', () => csvFileInput.click());
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = '#764ba2';
+      dropZone.style.background = 'rgba(102, 126, 234, 0.15)';
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.style.borderColor = '#667eea';
+      dropZone.style.background = 'rgba(102, 126, 234, 0.05)';
+    });
+
+    dropZone.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = '#667eea';
+      dropZone.style.background = 'rgba(102, 126, 234, 0.05)';
+
+      const file = e.dataTransfer.files[0];
+      if (file && file.name.endsWith('.csv')) {
+        csvFileInput.files = e.dataTransfer.files;
+        await handleCSVImport({ target: { files: [file] } });
+      } else {
+        alert('Please drop a CSV file');
+      }
+    });
   }
 }
 
@@ -535,12 +571,219 @@ async function loadPartsLibraryUI() {
   }
 }
 
-function filterParts() {
-  const searchTerm = document.getElementById('partsSearch')?.value.toLowerCase() || '';
-  const category = document.getElementById('partsCategoryFilter')?.value || 'all';
+async function filterAndSortParts() {
+  if (typeof PartsLibrary === 'undefined') return;
 
-  const cards = document.querySelectorAll('.part-card');
-  cards.forEach(card => {
+  const searchTerm = document.getElementById('partsSearchInput')?.value.toLowerCase() || '';
+  const categoryFilter = document.getElementById('partsCategoryFilter')?.value || '';
+  const sortBy = document.getElementById('partsSortBy')?.value || 'name';
+
+  const grid = document.getElementById('partsGrid');
+  if (!grid) return;
+
+  try {
+    const library = await PartsLibrary.exportLibrary();
+    let allParts = [];
+
+    // Flatten all categories into one array
+    Object.entries(library).forEach(([category, parts]) => {
+      if (Array.isArray(parts)) {
+        parts.forEach(part => {
+          allParts.push({ ...part, category });
+        });
+      }
+    });
+
+    // Filter by search term
+    if (searchTerm) {
+      allParts = allParts.filter(part => {
+        const name = (part.name || '').toLowerCase();
+        const manufacturer = (part.manufacturer || '').toLowerCase();
+        const category = (part.category || '').toLowerCase();
+        const partNumber = (part.part_number || '').toLowerCase();
+
+        return name.includes(searchTerm) ||
+               manufacturer.includes(searchTerm) ||
+               category.includes(searchTerm) ||
+               partNumber.includes(searchTerm);
+      });
+    }
+
+    // Filter by category
+    if (categoryFilter) {
+      allParts = allParts.filter(part => part.category === categoryFilter);
+    }
+
+    // Sort
+    allParts.sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return (a.name || '').localeCompare(b.name || '');
+        case 'weight':
+          return (a.weight_g || 999999) - (b.weight_g || 999999);
+        case 'cost':
+          return (a.cost_usd || 999999) - (b.cost_usd || 999999);
+        case 'quantity':
+          return (b.quantity || 0) - (a.quantity || 0);
+        default:
+          return 0;
+      }
+    });
+
+    if (allParts.length === 0) {
+      grid.innerHTML = '<p class="small muted">No parts match your filters.</p>';
+      return;
+    }
+
+    grid.innerHTML = allParts.map(part => `
+      <div class="part-card" data-part-id="${part.id}" data-part-category="${part.category}">
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+          <strong>${part.name || part.model || 'Unnamed Part'}</strong>
+          <button class="btn subtle" style="padding: 4px 8px; font-size: 12px;" onclick="openPartEditor('${part.id}', '${part.category}')">✏️ Edit</button>
+        </div>
+        <p class="small muted">${part.category || 'Unknown'}</p>
+        <p class="small">${part.manufacturer || ''} ${part.part_number || ''}</p>
+        <div class="part-specs">
+          ${part.quantity ? `<span>Qty: ${part.quantity}</span>` : ''}
+          ${part.weight_g ? `<span>${part.weight_g}g</span>` : ''}
+          ${part.cost_usd ? `<span>$${part.cost_usd}</span>` : ''}
+        </div>
+      </div>
+    `).join('');
+
+    updatePartsStatus(`Showing ${allParts.length} parts`);
+  } catch (error) {
+    console.error('Failed to filter/sort parts:', error);
+  }
+}
+
+function filterParts() {
+  // Legacy function - redirect to new function
+  filterAndSortParts();
+}
+
+async function renderSavedPlatformsList() {
+  const container = document.getElementById('savedPlatformsList');
+  if (!container) return;
+
+  const designs = PlatformDesigner.loadDesigns();
+
+  if (designs.length === 0) {
+    container.innerHTML = '<p class="small muted">No saved platforms. Save a design to see it here.</p>';
+    return;
+  }
+
+  container.innerHTML = designs.map(design => {
+    const validation = design.validation || {};
+    const metrics = validation.metrics || {};
+
+    return `
+      <div style="padding: 12px; margin-bottom: 8px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: start;">
+          <div style="flex: 1;">
+            <strong>${design.name}</strong>
+            <p class="small muted">${design.type} • ${metrics.auw_kg?.toFixed(2) || 0}kg • ${metrics.nominal_flight_time_min?.toFixed(0) || 0}min flight time</p>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn subtle" style="padding: 4px 8px; font-size: 12px;" onclick="loadSavedPlatform('${design.id}')">Load</button>
+            <button class="btn subtle" style="padding: 4px 8px; font-size: 12px; color: #ff4444;" onclick="deleteSavedPlatform('${design.id}')">Delete</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function loadSavedPlatform(designId) {
+  const designs = PlatformDesigner.loadDesigns();
+  const design = designs.find(d => d.id === designId);
+
+  if (!design) {
+    alert('Platform not found');
+    return;
+  }
+
+  // Load into current design
+  currentPlatformDesign = design;
+  savePlatformDesignerDraft();
+  restorePlatformDesignerState();
+
+  // Reload selectors
+  await loadComponentSelectors();
+
+  // Validate
+  validateCurrentPlatform();
+
+  alert(`Loaded platform: ${design.name}`);
+}
+
+async function deleteSavedPlatform(designId) {
+  const designs = PlatformDesigner.loadDesigns();
+  const design = designs.find(d => d.id === designId);
+
+  if (!design) return;
+
+  if (!confirm(`Delete platform "${design.name}"?\n\nThis cannot be undone.`)) {
+    return;
+  }
+
+  // Remove from storage
+  const filtered = designs.filter(d => d.id !== designId);
+  localStorage.setItem('platform_designs', JSON.stringify(filtered));
+
+  // Refresh list
+  renderSavedPlatformsList();
+
+  alert('Platform deleted');
+}
+
+function exportPlatformPDF() {
+  alert('PDF export functionality coming soon!\n\nThis will export:\n- Platform configuration\n- Bill of Materials\n- Validation results\n- Performance metrics');
+}
+
+function exportPlatformExcel() {
+  if (!currentPlatformDesign) {
+    alert('No platform design loaded. Create and save a platform first.');
+    return;
+  }
+
+  // Generate BOM
+  const bom = PlatformDesigner.generateBOM(currentPlatformDesign);
+  const validation = currentPlatformDesign.validation || {};
+  const metrics = validation.metrics || {};
+
+  // Create CSV content
+  let csv = `COTS Architect - Platform Export\n`;
+  csv += `Platform Name:,${currentPlatformDesign.name}\n`;
+  csv += `Type:,${currentPlatformDesign.type}\n`;
+  csv += `All-Up Weight:,${metrics.auw_kg?.toFixed(2) || 0} kg\n`;
+  csv += `Flight Time:,${metrics.nominal_flight_time_min?.toFixed(1) || 0} min\n`;
+  csv += `Thrust-to-Weight:,${metrics.thrust_to_weight?.toFixed(2) || 0}\n\n`;
+
+  csv += `Bill of Materials\n`;
+  csv += `Category,Name,Manufacturer,Part Number,Quantity,Unit Weight (g),Total Weight (g),Unit Cost ($),Total Cost ($)\n`;
+
+  bom.items.forEach(item => {
+    csv += `${item.category},${item.name},${item.manufacturer},${item.part_number},${item.quantity},${item.unit_weight_g},${item.total_weight_g},${item.unit_cost_usd},${item.total_cost_usd}\n`;
+  });
+
+  csv += `\nTOTALS,,,,${bom.items.length},,,${bom.totals.weight_g},${bom.totals.cost_usd}\n`;
+
+  // Download
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${currentPlatformDesign.name.replace(/\s+/g, '_')}_BOM.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  alert('Platform BOM exported to CSV');
+}
+
+function comparePlatforms() {
+  alert('Platform comparison feature coming soon!\n\nThis will allow you to:\n- Select 2-3 saved platforms\n- Compare specs side-by-side\n- See performance differences\n- Choose the best option for your mission');
+}
     const text = card.textContent.toLowerCase();
     const matchesSearch = !searchTerm || text.includes(searchTerm);
     const matchesCategory = category === 'all' || card.querySelector('.small.muted')?.textContent === category;
@@ -647,11 +890,37 @@ function initPlatformDesigner() {
     savePlatformBtn.addEventListener('click', saveCurrentPlatform);
   }
 
+  const clearPlatformBtn = document.getElementById('clearPlatform');
+  if (clearPlatformBtn) {
+    clearPlatformBtn.addEventListener('click', clearPlatformDesign);
+  }
+
+  const autoBuildBtn = document.getElementById('autoBuildPlatform');
+  if (autoBuildBtn) {
+    autoBuildBtn.addEventListener('click', autoBuildPlatform);
+  }
+
+  const exportPDFBtn = document.getElementById('exportPlatformPDF');
+  if (exportPDFBtn) {
+    exportPDFBtn.addEventListener('click', exportPlatformPDF);
+  }
+
+  const exportExcelBtn = document.getElementById('exportPlatformExcel');
+  if (exportExcelBtn) {
+    exportExcelBtn.addEventListener('click', exportPlatformExcel);
+  }
+
+  const comparePlatformsBtn = document.getElementById('comparePlatforms');
+  if (comparePlatformsBtn) {
+    comparePlatformsBtn.addEventListener('click', comparePlatforms);
+  }
+
   // Load component selectors
   loadComponentSelectors();
 
   // Load saved designs
   loadSavedPlatforms();
+  renderSavedPlatformsList();
 
   // Listen for environmental data events from Map module
   if (typeof MissionProjectEvents !== 'undefined') {
@@ -833,8 +1102,10 @@ function handleComponentSelect(category, partId, library) {
     const part = categoryParts?.find(p => p.id === partId);
     if (part) {
       currentPlatformDesign.components[category] = part;
+      console.log(`Selected ${category}:`, part);
     }
   }
+  savePlatformDesignerDraft();
   updateSelectedComponentsDisplay();
 }
 
@@ -981,11 +1252,153 @@ function saveCurrentPlatform() {
 
   // Reload saved platforms list
   loadSavedPlatforms();
+  renderSavedPlatformsList();
 }
 
 function loadSavedPlatforms() {
   // This will be displayed in a future enhancement
   console.log('Saved platforms:', PlatformDesigner.loadDesigns());
+}
+
+/**
+ * Clear all platform design fields
+ */
+function clearPlatformDesign() {
+  if (!confirm('Are you sure you want to clear this design? This cannot be undone.')) {
+    return;
+  }
+
+  // Create new empty design
+  currentPlatformDesign = PlatformDesigner.createEmptyDesign();
+  savePlatformDesignerDraft();
+
+  // Reset form fields
+  const platformName = document.getElementById('platformName');
+  if (platformName) platformName.value = '';
+
+  const platformType = document.getElementById('platformType');
+  if (platformType) platformType.value = 'multi-rotor';
+
+  const envAltitude = document.getElementById('envAltitude');
+  if (envAltitude) envAltitude.value = '0';
+
+  const envTemperature = document.getElementById('envTemperature');
+  if (envTemperature) envTemperature.value = '20';
+
+  // Reset component selectors
+  const selectors = ['selectAirframe', 'selectBattery', 'selectESC', 'selectFC', 'selectMotors'];
+  selectors.forEach(id => {
+    const select = document.getElementById(id);
+    if (select) select.value = '';
+  });
+
+  // Clear validation results
+  const validationResults = document.getElementById('validationResults');
+  if (validationResults) validationResults.innerHTML = '<p class="small muted">Design cleared. Select components to begin.</p>';
+
+  // Clear selected components display
+  updateSelectedComponentsDisplay();
+
+  alert('Platform design cleared!');
+}
+
+/**
+ * Auto-build optimal platform from available inventory
+ */
+async function autoBuildPlatform() {
+  try {
+    // Ensure Parts Library is initialized
+    await PartsLibrary.initDB();
+    const library = await PartsLibrary.exportLibrary();
+
+    // Check if we have parts loaded
+    const hasParts = library.motors?.length > 0 && library.batteries?.length > 0 && library.airframes?.length > 0;
+    if (!hasParts) {
+      alert('No parts available in inventory. Load parts from the Parts Library first.');
+      return;
+    }
+
+    if (!confirm('This will replace your current design with an auto-generated optimal build. Continue?')) {
+      return;
+    }
+
+    // Create new design
+    currentPlatformDesign = PlatformDesigner.createEmptyDesign();
+    currentPlatformDesign.name = 'Auto-Built Platform';
+
+    // Select best airframe (lightest multi-rotor if available)
+    const multiRotorFrames = library.airframes.filter(a => a.type === 'quad' || a.type === 'hexa' || a.type === 'octo');
+    const airframe = multiRotorFrames.length > 0
+      ? multiRotorFrames.sort((a, b) => (a.weight_g || 999999) - (b.weight_g || 999999))[0]
+      : library.airframes[0];
+
+    if (airframe) {
+      currentPlatformDesign.components.airframe = airframe;
+      currentPlatformDesign.type = airframe.type === 'fixed-wing' ? 'fixed-wing' : 'multi-rotor';
+    }
+
+    // Select best battery (highest capacity per weight ratio)
+    const batteries = library.batteries
+      .filter(b => b.capacity_wh && b.weight_g)
+      .sort((a, b) => (b.capacity_wh / b.weight_g) - (a.capacity_wh / a.weight_g));
+
+    if (batteries.length > 0) {
+      currentPlatformDesign.components.battery = batteries[0];
+    }
+
+    // Select motors (based on airframe type)
+    const motorCount = airframe?.type === 'quad' ? 4 : airframe?.type === 'hexa' ? 6 : airframe?.type === 'octo' ? 8 : 1;
+    const motors = library.motors
+      .filter(m => m.max_thrust_g)
+      .sort((a, b) => (b.max_thrust_g / (b.weight_g || 1)) - (a.max_thrust_g / (a.weight_g || 1)));
+
+    if (motors.length > 0) {
+      currentPlatformDesign.components.motors = Array(motorCount).fill(motors[0]);
+    }
+
+    // Select ESC (highest current rating)
+    const escs = library.escs
+      .filter(e => e.max_current_a)
+      .sort((a, b) => (b.max_current_a) - (a.max_current_a));
+
+    if (escs.length > 0) {
+      currentPlatformDesign.components.escs = escs[0];
+    }
+
+    // Select flight controller (first available)
+    if (library.flight_controllers?.length > 0) {
+      currentPlatformDesign.components.flight_controller = library.flight_controllers[0];
+    }
+
+    // Select radio (first available)
+    if (library.radios?.length > 0) {
+      currentPlatformDesign.components.radios = [library.radios[0]];
+    }
+
+    // Select sensors (all GPS and IMU if available)
+    const gps = library.sensors?.filter(s => s.type === 'gps' || s.name?.toLowerCase().includes('gps'));
+    const imu = library.sensors?.filter(s => s.type === 'imu' || s.name?.toLowerCase().includes('imu'));
+    const selectedSensors = [];
+    if (gps.length > 0) selectedSensors.push(gps[0]);
+    if (imu.length > 0) selectedSensors.push(imu[0]);
+    if (selectedSensors.length > 0) {
+      currentPlatformDesign.components.sensors = selectedSensors;
+    }
+
+    // Update UI
+    savePlatformDesignerDraft();
+    restorePlatformDesignerState();
+    loadComponentSelectors();
+
+    // Auto-validate
+    validateCurrentPlatform();
+
+    alert('Platform auto-built successfully! Review the validation results and adjust as needed.');
+
+  } catch (error) {
+    console.error('Error auto-building platform:', error);
+    alert('Error auto-building platform. Check console for details.');
+  }
 }
 
 /**
@@ -1696,9 +2109,14 @@ function initCommsValidator() {
   }
 
   // Wire up buttons
-  const addNodeBtn = document.getElementById('addNode');
-  if (addNodeBtn) {
-    addNodeBtn.addEventListener('click', addCommsNode);
+  const addNodeManualBtn = document.getElementById('addNodeManual');
+  if (addNodeManualBtn) {
+    addNodeManualBtn.addEventListener('click', addCommsNode);
+  }
+
+  const clearNodesBtn = document.getElementById('clearNodes');
+  if (clearNodesBtn) {
+    clearNodesBtn.addEventListener('click', clearCommsNodes);
   }
 
   const analyzeBtn = document.getElementById('analyzeLinks');
@@ -1710,6 +2128,9 @@ function initCommsValidator() {
   if (downloadBtn) {
     downloadBtn.addEventListener('click', downloadCommsReportFn);
   }
+
+  // Initialize interactive map
+  initCommsMap();
 
   // Initial render
   renderNodesEditor();
@@ -1800,6 +2221,207 @@ function removeCommsNode(nodeId) {
   if (!currentCommsAnalysis) return;
   currentCommsAnalysis.nodes = currentCommsAnalysis.nodes.filter(n => n.id !== nodeId);
   renderNodesEditor();
+  renderCommsMap();
+}
+
+function clearCommsNodes() {
+  if (!currentCommsAnalysis) return;
+
+  if (currentCommsAnalysis.nodes.length === 0) {
+    alert('No nodes to clear');
+    return;
+  }
+
+  const confirmed = confirm(`Clear all ${currentCommsAnalysis.nodes.length} nodes?\n\nThis cannot be undone.`);
+  if (!confirmed) return;
+
+  currentCommsAnalysis.nodes = [];
+  renderNodesEditor();
+  renderCommsMap();
+  alert('All nodes cleared');
+}
+
+let commsMapCanvas = null;
+let commsMapCtx = null;
+let commsMapState = {
+  centerLat: 0,
+  centerLon: 0,
+  zoom: 1,
+  nodeTypeToPlace: 'transceiver', // transceiver, uav, relay
+};
+
+function initCommsMap() {
+  commsMapCanvas = document.getElementById('commsMapCanvas');
+  if (!commsMapCanvas) return;
+
+  // Set canvas size
+  const container = commsMapCanvas.parentElement;
+  commsMapCanvas.width = container.clientWidth;
+  commsMapCanvas.height = container.clientHeight;
+
+  commsMapCtx = commsMapCanvas.getContext('2d');
+
+  // Click handler to place nodes
+  commsMapCanvas.addEventListener('click', (e) => {
+    const rect = commsMapCanvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Convert canvas coordinates to lat/lon (simplified)
+    const lat = commsMapState.centerLat + ((commsMapCanvas.height / 2 - y) / commsMapCanvas.height) * 0.1 * commsMapState.zoom;
+    const lon = commsMapState.centerLon + ((x - commsMapCanvas.width / 2) / commsMapCanvas.width) * 0.1 * commsMapState.zoom;
+
+    // Prompt for node details
+    const nodeTypes = {
+      'GCS': 'transceiver',
+      'UAV': 'transceiver',
+      'Relay': 'transceiver'
+    };
+
+    const typeName = prompt('Node type:\n1. GCS (Ground Control Station)\n2. UAV (Unmanned Aerial Vehicle)\n3. Relay (Communication Relay)\n\nEnter 1, 2, or 3:', '1');
+    if (!typeName) return;
+
+    const typeMap = { '1': 'GCS', '2': 'UAV', '3': 'Relay' };
+    const selectedType = typeMap[typeName] || 'GCS';
+
+    const nodeName = prompt(`${selectedType} name:`, `${selectedType}-${currentCommsAnalysis.nodes.length + 1}`);
+    if (!nodeName) return;
+
+    const heightAGL = prompt('Height above ground level (meters):', selectedType === 'GCS' ? '2' : selectedType === 'UAV' ? '100' : '50');
+    if (heightAGL === null) return;
+
+    // Create node
+    const node = {
+      name: nodeName,
+      type: nodeTypes[selectedType],
+      location: {
+        lat: parseFloat(lat.toFixed(6)),
+        lon: parseFloat(lon.toFixed(6)),
+        elevation_m: 0,
+        height_agl_m: parseFloat(heightAGL)
+      },
+      radio: {
+        frequency_mhz: 900,
+        power_output_dbm: 20,
+        tx_gain_dbi: 2,
+        rx_gain_dbi: 2,
+        sensitivity_dbm: -110,
+        tx_cable_loss_db: 1,
+        rx_cable_loss_db: 1
+      },
+      nodeType: selectedType,
+      notes: ''
+    };
+
+    CommsValidator.addNode(currentCommsAnalysis, node);
+    renderNodesEditor();
+    renderCommsMap();
+  });
+
+  // Render initial map
+  renderCommsMap();
+}
+
+function renderCommsMap() {
+  if (!commsMapCtx || !commsMapCanvas) return;
+
+  const ctx = commsMapCtx;
+  const width = commsMapCanvas.width;
+  const height = commsMapCanvas.height;
+
+  // Clear canvas
+  ctx.fillStyle = '#1a1f2e';
+  ctx.fillRect(0, 0, width, height);
+
+  // Draw grid
+  ctx.strokeStyle = '#2a3f5e';
+  ctx.lineWidth = 1;
+  const gridSize = 50;
+  for (let x = 0; x < width; x += gridSize) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, height);
+    ctx.stroke();
+  }
+  for (let y = 0; y < height; y += gridSize) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
+  }
+
+  // Draw center crosshair
+  ctx.strokeStyle = '#667eea';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(width / 2 - 10, height / 2);
+  ctx.lineTo(width / 2 + 10, height / 2);
+  ctx.moveTo(width / 2, height / 2 - 10);
+  ctx.lineTo(width / 2, height / 2 + 10);
+  ctx.stroke();
+
+  // Draw links between nodes
+  if (currentCommsAnalysis && currentCommsAnalysis.nodes.length > 1) {
+    ctx.strokeStyle = 'rgba(102, 126, 234, 0.3)';
+    ctx.lineWidth = 2;
+
+    for (let i = 0; i < currentCommsAnalysis.nodes.length; i++) {
+      for (let j = i + 1; j < currentCommsAnalysis.nodes.length; j++) {
+        const node1 = currentCommsAnalysis.nodes[i];
+        const node2 = currentCommsAnalysis.nodes[j];
+
+        const pos1 = latLonToCanvas(node1.location.lat, node1.location.lon);
+        const pos2 = latLonToCanvas(node2.location.lat, node2.location.lon);
+
+        ctx.beginPath();
+        ctx.moveTo(pos1.x, pos1.y);
+        ctx.lineTo(pos2.x, pos2.y);
+        ctx.stroke();
+      }
+    }
+  }
+
+  // Draw nodes
+  if (currentCommsAnalysis && currentCommsAnalysis.nodes) {
+    currentCommsAnalysis.nodes.forEach(node => {
+      const pos = latLonToCanvas(node.location.lat, node.location.lon);
+
+      // Determine color based on node type
+      let color = '#60a5fa'; // default blue
+      if (node.nodeType === 'GCS' || node.name.toLowerCase().includes('gcs')) {
+        color = '#4ade80'; // green
+      } else if (node.nodeType === 'Relay' || node.name.toLowerCase().includes('relay')) {
+        color = '#fbbf24'; // yellow
+      }
+
+      // Draw node circle
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw node label
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '12px monospace';
+      ctx.fillText(node.name, pos.x + 12, pos.y + 4);
+    });
+  }
+
+  // Draw instructions
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+  ctx.font = '14px monospace';
+  ctx.fillText('Click to place nodes', 10, 20);
+}
+
+function latLonToCanvas(lat, lon) {
+  const width = commsMapCanvas.width;
+  const height = commsMapCanvas.height;
+
+  // Simple conversion (centered on commsMapState center)
+  const x = width / 2 + ((lon - commsMapState.centerLon) / (0.1 * commsMapState.zoom)) * width;
+  const y = height / 2 - ((lat - commsMapState.centerLat) / (0.1 * commsMapState.zoom)) * height;
+
+  return { x, y };
 }
 
 function analyzeCommsLinks() {
@@ -2880,6 +3502,12 @@ function initInventoryEditor() {
     addNewPartBtn.addEventListener('click', () => openPartEditor(null, 'accessories'));
   }
 
+  // Delete Entire Inventory button
+  const deleteInventoryBtn = document.getElementById('deleteEntireInventory');
+  if (deleteInventoryBtn) {
+    deleteInventoryBtn.addEventListener('click', deleteEntireInventory);
+  }
+
   // Close modal buttons
   const closeBtn = document.getElementById('closePartEditor');
   const cancelBtn = document.getElementById('cancelPartEdit');
@@ -3078,6 +3706,58 @@ async function deletePart() {
   } catch (error) {
     console.error('Failed to delete part:', error);
     alert(`Failed to delete part: ${error.message}`);
+  }
+}
+
+/**
+ * Delete entire inventory (all parts from all categories)
+ */
+async function deleteEntireInventory() {
+  const confirmed = confirm(
+    '⚠️ WARNING: This will delete ALL parts from your entire inventory!\n\n' +
+    'This includes:\n' +
+    '- All airframes\n' +
+    '- All motors\n' +
+    '- All ESCs\n' +
+    '- All batteries\n' +
+    '- All flight controllers\n' +
+    '- All radios\n' +
+    '- All sensors\n' +
+    '- All accessories\n\n' +
+    'This action CANNOT be undone.\n\n' +
+    'Are you absolutely sure you want to continue?'
+  );
+
+  if (!confirmed) return;
+
+  // Second confirmation
+  const doubleConfirm = confirm(
+    'FINAL CONFIRMATION\n\n' +
+    'Type confirmation below to proceed with deletion of entire inventory.\n\n' +
+    'Click OK to continue, or Cancel to abort.'
+  );
+
+  if (!doubleConfirm) return;
+
+  try {
+    // Get statistics before deletion for feedback
+    const stats = await PartsLibrary.getStatistics();
+    const totalParts = stats.totalParts;
+
+    // Delete all categories
+    await PartsLibrary.clearLibrary();
+
+    // Reload UI
+    await loadPartsLibraryUI();
+
+    alert(`✅ Successfully deleted ${totalParts} parts from inventory.\n\nYou can now import a new inventory or load the sample catalog.`);
+
+    if (typeof UIFeedback !== 'undefined') {
+      UIFeedback.Toast.success(`Deleted ${totalParts} parts from inventory`, 3000);
+    }
+  } catch (error) {
+    console.error('Failed to delete inventory:', error);
+    alert(`❌ Failed to delete inventory: ${error.message}\n\nCheck console for details.`);
   }
 }
 
