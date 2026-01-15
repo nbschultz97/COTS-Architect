@@ -1,6 +1,6 @@
 # COTS Architect - Offline Mission Planning Tool
 
-![Version](https://img.shields.io/badge/version-0.4.0--alpha.3-blue)
+![Version](https://img.shields.io/badge/version-0.4.0--alpha.4-blue)
 ![Stage](https://img.shields.io/badge/stage-alpha-orange)
 ![Schema](https://img.shields.io/badge/schema-v2.0.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0-blue)
@@ -16,35 +16,49 @@ Maintained by **Noah Schultz (individual)**.
 
 **Online Demo:** <https://nbschultz97.github.io/COTS-Architect/> *(Demonstration only - not for production use)*
 
-> **✅ v0.4.0-alpha.3** - Excel import, Leaflet basemap for Comms Validator, and full desktop app fixes. See [CHANGELOG.md](CHANGELOG.md) for complete release notes.
+> **✅ v0.4.0-alpha.4** - Error handling, settings panel, enhanced SRTM elevation, mission cards PDF export, and undo/redo foundation. See [CHANGELOG.md](CHANGELOG.md) for complete release notes.
 
-## What's New in v0.4.0-alpha.3 📊🗺️
+## What's New in v0.4.0-alpha.4 ⚙️🗺️📄
 
-**Excel File Import Support:**
-- ✅ **Multi-Format Import** - Parts Library now accepts `.xlsx` and `.xls` files in addition to `.csv`
-- ✅ **SheetJS Integration** - Automatic Excel parsing and conversion to internal format
-- ✅ **Drag & Drop** - Upload Excel files directly via drag-and-drop or file picker
-- ✅ **Multi-Category Support** - Single Excel file can contain multiple part categories
+**Comprehensive Error Handling System:**
+- ✅ **Global Error Handler** - Catches uncaught errors and promise rejections automatically
+- ✅ **Error Categorization** - Storage, Network, Validation, File I/O, Calculation, User Input, System
+- ✅ **Severity Levels** - Info, Warning, Error, Critical with color-coded toast notifications
+- ✅ **Error Logging** - Last 100 errors stored in localStorage with downloadable JSON logs
+- ✅ **User-Friendly Messages** - Actionable feedback instead of technical stack traces
+- ✅ **Wrapper Functions** - `wrapAsync()` and `wrapSync()` for automatic error handling
 
-**Leaflet Basemap for Comms Validator:**
-- ✅ **Real Terrain Visualization** - Replaced canvas grid with OpenStreetMap basemap
-- ✅ **Interactive Map** - Full zoom, pan, and marker interaction
-- ✅ **Colored Node Markers** - Visual distinction: 🟢 GCS, 🔵 UAV, 🟡 Relay
-- ✅ **RF Link Visualization** - Dashed lines show communication paths between nodes
-- ✅ **Auto-Fit Bounds** - Map automatically centers on placed nodes
-- ✅ **Detailed Popups** - Click markers to see full node specifications
+**Settings Panel:**
+- ✅ **Comprehensive Preferences** - Units, map, UI, data management, and advanced settings
+- ✅ **Gear Icon in Header** - Quick access to settings modal (⚙️ button)
+- ✅ **Unit Conversion** - Toggle between metric/imperial for distance, weight, temperature
+- ✅ **Theme Management** - Dark/light mode with instant application
+- ✅ **Import/Export** - Save and share settings as JSON
+- ✅ **Reset to Defaults** - One-click restore to factory settings
+- ✅ **Persistent Storage** - Settings persist across sessions in localStorage
 
-**Map Location Sharing:**
-- ✅ **Cross-Tool Synchronization** - Comms Validator auto-centers when Mission Planner location selected
-- ✅ **Event-Driven Architecture** - Location changes propagate instantly across modules
-- ✅ **Persistent Storage** - Last map position saved in localStorage
+**Enhanced SRTM Elevation Fallback:**
+- ✅ **Pre-Defined Zones** - 50+ global regions with intelligent elevation estimates
+- ✅ **Terrain Classification** - Mountains, hills, plateau, plains, coastal, desert, tropical, tundra
+- ✅ **Global Coverage** - CONUS, Europe, Middle East, Asia, Africa, Americas, Australia & Oceania
+- ✅ **Route Profiles** - Elevation gain/loss calculations for mission planning
+- ✅ **No Downloads Required** - Works immediately without SRTM tile downloads
+- ✅ **Terrain Descriptions** - User-friendly terrain type feedback
 
-**Electron Desktop App Fixes:**
-- ✅ **Custom Prompt Dialogs** - Fixed `prompt()` not supported error with modal implementation
-- ✅ **Async/Await Conversion** - All user input functions now properly async
-- ✅ **Hidden Web Banners** - Desktop mode automatically hides demo-only UI elements
-- ✅ **Syntax Error Resolution** - Fixed orphaned code causing app crashes
-- ✅ **Function Name Corrections** - Fixed `updateComponentSelectionDisplay` typo
+**Mission Cards PDF Export:**
+- ✅ **Printable Cards** - Professional mission cards from mission phases
+- ✅ **Icon Library** - 25+ icons for platforms, phases, equipment, status, weather
+- ✅ **PDF Export** - Multi-page PDF via jsPDF library (2 cards per page)
+- ✅ **HTML Print** - Browser print dialog with formatted layout
+- ✅ **JSON Export** - Machine-readable format for integration
+- ✅ **Complete Details** - Phase info, duration, time windows, platform, batteries, location, weather
+
+**Undo/Redo Foundation:**
+- ✅ **Command Pattern** - Structured undo/redo implementation
+- ✅ **History Stack** - Last 50 actions tracked
+- ✅ **Keyboard Shortcuts** - Ctrl+Z for undo, Ctrl+Y/Ctrl+Shift+Z for redo
+- ✅ **Toast Notifications** - User feedback for undo/redo actions
+- ✅ **Foundation Ready** - Command wrappers for full integration (in progress)
 
 ## What's in v0.4.0-alpha.2 🗺️
 
