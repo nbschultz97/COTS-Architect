@@ -1,6 +1,6 @@
 # COTS Architect - Offline Mission Planning Tool
 
-![Version](https://img.shields.io/badge/version-0.4.0--alpha.2-blue)
+![Version](https://img.shields.io/badge/version-0.4.0--alpha.3-blue)
 ![Stage](https://img.shields.io/badge/stage-alpha-orange)
 ![Schema](https://img.shields.io/badge/schema-v2.0.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0-blue)
@@ -16,9 +16,37 @@ Maintained by **Noah Schultz (individual)**.
 
 **Online Demo:** <https://nbschultz97.github.io/COTS-Architect/> *(Demonstration only - not for production use)*
 
-> **✅ v0.4.0-alpha.2** - Offline GIS, historical weather almanac, and enhanced cold-weather derating. See [v0.3_offline_gis_almanac.md](docs/v0.3_offline_gis_almanac.md) for full documentation.
+> **✅ v0.4.0-alpha.3** - Excel import, Leaflet basemap for Comms Validator, and full desktop app fixes. See [CHANGELOG.md](CHANGELOG.md) for complete release notes.
 
-## What's New in v0.4.0-alpha.2 🗺️
+## What's New in v0.4.0-alpha.3 📊🗺️
+
+**Excel File Import Support:**
+- ✅ **Multi-Format Import** - Parts Library now accepts `.xlsx` and `.xls` files in addition to `.csv`
+- ✅ **SheetJS Integration** - Automatic Excel parsing and conversion to internal format
+- ✅ **Drag & Drop** - Upload Excel files directly via drag-and-drop or file picker
+- ✅ **Multi-Category Support** - Single Excel file can contain multiple part categories
+
+**Leaflet Basemap for Comms Validator:**
+- ✅ **Real Terrain Visualization** - Replaced canvas grid with OpenStreetMap basemap
+- ✅ **Interactive Map** - Full zoom, pan, and marker interaction
+- ✅ **Colored Node Markers** - Visual distinction: 🟢 GCS, 🔵 UAV, 🟡 Relay
+- ✅ **RF Link Visualization** - Dashed lines show communication paths between nodes
+- ✅ **Auto-Fit Bounds** - Map automatically centers on placed nodes
+- ✅ **Detailed Popups** - Click markers to see full node specifications
+
+**Map Location Sharing:**
+- ✅ **Cross-Tool Synchronization** - Comms Validator auto-centers when Mission Planner location selected
+- ✅ **Event-Driven Architecture** - Location changes propagate instantly across modules
+- ✅ **Persistent Storage** - Last map position saved in localStorage
+
+**Electron Desktop App Fixes:**
+- ✅ **Custom Prompt Dialogs** - Fixed `prompt()` not supported error with modal implementation
+- ✅ **Async/Await Conversion** - All user input functions now properly async
+- ✅ **Hidden Web Banners** - Desktop mode automatically hides demo-only UI elements
+- ✅ **Syntax Error Resolution** - Fixed orphaned code causing app crashes
+- ✅ **Function Name Corrections** - Fixed `updateComponentSelectionDisplay` typo
+
+## What's in v0.4.0-alpha.2 🗺️
 
 **Offline GIS & Coordinate Automation:**
 - ✅ **Interactive Map Viewer** - Leaflet-based offline mapping with click-to-select location picker
