@@ -2313,35 +2313,50 @@ function clearCommsNodes() {
   alert('All nodes cleared');
 }
 
-let commsMapCanvas = null;
-let commsMapCtx = null;
-let commsMapState = {
-  centerLat: 0,
-  centerLon: 0,
-  zoom: 1,
-  nodeTypeToPlace: 'transceiver', // transceiver, uav, relay
-};
+// Comms Validator Map using Leaflet
+let commsMapInstance = null;
+let commsNodeMarkers = [];
+let commsLinkLines = [];
 
 function initCommsMap() {
-  commsMapCanvas = document.getElementById('commsMapCanvas');
-  if (!commsMapCanvas) return;
+  const container = document.getElementById('commsMapLeaflet');
+  if (!container) {
+    console.error('[CommsValidator] Map container not found');
+    return;
+  }
 
-  // Set canvas size
-  const container = commsMapCanvas.parentElement;
-  commsMapCanvas.width = container.clientWidth;
-  commsMapCanvas.height = container.clientHeight;
+  // Load last location or use mission planner location or default
+  let initialLocation = { lat: 0, lon: 0, zoom: 3 };
 
-  commsMapCtx = commsMapCanvas.getContext('2d');
+  // Try to get location from Mission Planner
+  try {
+    const savedLocation = localStorage.getItem('cots_selected_location');
+    if (savedLocation) {
+      const loc = JSON.parse(savedLocation);
+      initialLocation = { lat: loc.lat, lon: loc.lon, zoom: 10 };
+    }
+  } catch (error) {
+    console.warn('[CommsValidator] Could not load saved location, using default');
+  }
+
+  // Initialize Leaflet map
+  commsMapInstance = L.map('commsMapLeaflet', {
+    center: [initialLocation.lat, initialLocation.lon],
+    zoom: initialLocation.zoom,
+    zoomControl: true,
+    attributionControl: false
+  });
+
+  // Add OpenStreetMap tile layer
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: 'Map Data © OpenStreetMap'
+  }).addTo(commsMapInstance);
 
   // Click handler to place nodes
-  commsMapCanvas.addEventListener('click', async (e) => {
-    const rect = commsMapCanvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    // Convert canvas coordinates to lat/lon (simplified)
-    const lat = commsMapState.centerLat + ((commsMapCanvas.height / 2 - y) / commsMapCanvas.height) * 0.1 * commsMapState.zoom;
-    const lon = commsMapState.centerLon + ((x - commsMapCanvas.width / 2) / commsMapCanvas.width) * 0.1 * commsMapState.zoom;
+  commsMapInstance.on('click', async (e) => {
+    const lat = e.latlng.lat;
+    const lon = e.latlng.lng;
 
     // Prompt for node details
     const nodeTypes = {
@@ -2362,6 +2377,16 @@ function initCommsMap() {
     const heightAGL = await safePrompt('Height above ground level (meters):', selectedType === 'GCS' ? '2' : selectedType === 'UAV' ? '100' : '50');
     if (heightAGL === null) return;
 
+    // Get elevation from SRTM if available
+    let elevation = 0;
+    if (typeof SRTMElevation !== 'undefined') {
+      try {
+        elevation = await SRTMElevation.queryElevation(lat, lon);
+      } catch (error) {
+        console.warn('[CommsValidator] Could not get elevation, using 0');
+      }
+    }
+
     // Create node
     const node = {
       name: nodeName,
@@ -2369,7 +2394,7 @@ function initCommsMap() {
       location: {
         lat: parseFloat(lat.toFixed(6)),
         lon: parseFloat(lon.toFixed(6)),
-        elevation_m: 0,
+        elevation_m: elevation,
         height_agl_m: parseFloat(heightAGL)
       },
       radio: {
@@ -2390,110 +2415,99 @@ function initCommsMap() {
     renderCommsMap();
   });
 
-  // Render initial map
+  // Listen for map location updates from Mission Planner
+  if (typeof MissionProjectEvents !== 'undefined') {
+    MissionProjectEvents.on(MissionProjectEvents.EVENTS.MAP_LOCATION_SELECTED, (detail) => {
+      if (commsMapInstance && detail.location) {
+        commsMapInstance.setView([detail.location.lat, detail.location.lon], 12);
+        console.log('[CommsValidator] Map centered on Mission Planner location');
+      }
+    });
+  }
+
+  // Render initial map state
   renderCommsMap();
 }
 
 function renderCommsMap() {
-  if (!commsMapCtx || !commsMapCanvas) return;
+  if (!commsMapInstance) return;
 
-  const ctx = commsMapCtx;
-  const width = commsMapCanvas.width;
-  const height = commsMapCanvas.height;
+  // Clear existing markers and lines
+  commsNodeMarkers.forEach(marker => commsMapInstance.removeLayer(marker));
+  commsLinkLines.forEach(line => commsMapInstance.removeLayer(line));
+  commsNodeMarkers = [];
+  commsLinkLines = [];
 
-  // Clear canvas
-  ctx.fillStyle = '#1a1f2e';
-  ctx.fillRect(0, 0, width, height);
-
-  // Draw grid
-  ctx.strokeStyle = '#2a3f5e';
-  ctx.lineWidth = 1;
-  const gridSize = 50;
-  for (let x = 0; x < width; x += gridSize) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, height);
-    ctx.stroke();
-  }
-  for (let y = 0; y < height; y += gridSize) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(width, y);
-    ctx.stroke();
-  }
-
-  // Draw center crosshair
-  ctx.strokeStyle = '#667eea';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(width / 2 - 10, height / 2);
-  ctx.lineTo(width / 2 + 10, height / 2);
-  ctx.moveTo(width / 2, height / 2 - 10);
-  ctx.lineTo(width / 2, height / 2 + 10);
-  ctx.stroke();
+  if (!currentCommsAnalysis || !currentCommsAnalysis.nodes) return;
 
   // Draw links between nodes
-  if (currentCommsAnalysis && currentCommsAnalysis.nodes.length > 1) {
-    ctx.strokeStyle = 'rgba(102, 126, 234, 0.3)';
-    ctx.lineWidth = 2;
-
+  if (currentCommsAnalysis.nodes.length > 1) {
     for (let i = 0; i < currentCommsAnalysis.nodes.length; i++) {
       for (let j = i + 1; j < currentCommsAnalysis.nodes.length; j++) {
         const node1 = currentCommsAnalysis.nodes[i];
         const node2 = currentCommsAnalysis.nodes[j];
 
-        const pos1 = latLonToCanvas(node1.location.lat, node1.location.lon);
-        const pos2 = latLonToCanvas(node2.location.lat, node2.location.lon);
+        const line = L.polyline([
+          [node1.location.lat, node1.location.lon],
+          [node2.location.lat, node2.location.lon]
+        ], {
+          color: '#667eea',
+          weight: 2,
+          opacity: 0.5,
+          dashArray: '5, 10'
+        }).addTo(commsMapInstance);
 
-        ctx.beginPath();
-        ctx.moveTo(pos1.x, pos1.y);
-        ctx.lineTo(pos2.x, pos2.y);
-        ctx.stroke();
+        commsLinkLines.push(line);
       }
     }
   }
 
-  // Draw nodes
-  if (currentCommsAnalysis && currentCommsAnalysis.nodes) {
-    currentCommsAnalysis.nodes.forEach(node => {
-      const pos = latLonToCanvas(node.location.lat, node.location.lon);
+  // Draw node markers
+  currentCommsAnalysis.nodes.forEach(node => {
+    // Determine color based on node type
+    let color = '#60a5fa'; // default blue (UAV)
+    if (node.nodeType === 'GCS' || node.name.toLowerCase().includes('gcs')) {
+      color = '#4ade80'; // green
+    } else if (node.nodeType === 'Relay' || node.name.toLowerCase().includes('relay')) {
+      color = '#fbbf24'; // yellow
+    }
 
-      // Determine color based on node type
-      let color = '#60a5fa'; // default blue
-      if (node.nodeType === 'GCS' || node.name.toLowerCase().includes('gcs')) {
-        color = '#4ade80'; // green
-      } else if (node.nodeType === 'Relay' || node.name.toLowerCase().includes('relay')) {
-        color = '#fbbf24'; // yellow
-      }
-
-      // Draw node circle
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Draw node label
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '12px monospace';
-      ctx.fillText(node.name, pos.x + 12, pos.y + 4);
+    // Create custom icon
+    const icon = L.divIcon({
+      className: 'comms-node-marker',
+      html: `<div style="background: ${color}; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>`,
+      iconSize: [20, 20],
+      iconAnchor: [10, 10]
     });
+
+    const marker = L.marker([node.location.lat, node.location.lon], {
+      icon: icon,
+      draggable: false
+    }).addTo(commsMapInstance);
+
+    // Add popup with node details
+    const popupContent = `
+      <div style="min-width: 200px;">
+        <p style="margin: 0 0 8px 0; font-weight: bold;">${node.nodeType === 'GCS' ? '🟢' : node.nodeType === 'Relay' ? '🟡' : '🔵'} ${node.name}</p>
+        <p style="margin: 4px 0; font-size: 13px;">
+          <strong>Type:</strong> ${node.nodeType}<br>
+          <strong>Location:</strong> ${node.location.lat.toFixed(5)}°, ${node.location.lon.toFixed(5)}°<br>
+          <strong>Elevation:</strong> ${node.location.elevation_m} m<br>
+          <strong>Height AGL:</strong> ${node.location.height_agl_m} m<br>
+          <strong>Radio:</strong> ${node.radio.frequency_mhz} MHz @ ${node.radio.power_output_dbm} dBm
+        </p>
+      </div>
+    `;
+
+    marker.bindPopup(popupContent);
+    commsNodeMarkers.push(marker);
+  });
+
+  // Auto-fit map to show all nodes if there are any
+  if (commsNodeMarkers.length > 0) {
+    const group = L.featureGroup(commsNodeMarkers);
+    commsMapInstance.fitBounds(group.getBounds().pad(0.2));
   }
-
-  // Draw instructions
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-  ctx.font = '14px monospace';
-  ctx.fillText('Click to place nodes', 10, 20);
-}
-
-function latLonToCanvas(lat, lon) {
-  const width = commsMapCanvas.width;
-  const height = commsMapCanvas.height;
-
-  // Simple conversion (centered on commsMapState center)
-  const x = width / 2 + ((lon - commsMapState.centerLon) / (0.1 * commsMapState.zoom)) * width;
-  const y = height / 2 - ((lat - commsMapState.centerLat) / (0.1 * commsMapState.zoom)) * height;
-
-  return { x, y };
 }
 
 function analyzeCommsLinks() {
